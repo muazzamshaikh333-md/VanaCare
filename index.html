@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VanaCare — Homeopathy, delivered within the hour</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="#" class="logo" data-nav="home">Vana<span>Care</span></a>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search remedies — Arnica, cold, acidity…">
+      <button id="searchBtn">Search</button>
+    </div>
+    <nav class="header-actions">
+      <button class="icon-btn" data-nav="cart">Cart <span id="cartCount" class="badge">0</span></button>
+      <button class="icon-btn" id="accountBtn" data-nav="login">Account</button>
+    </nav>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- HOME -->
+  <section class="view" id="view-home">
+    <div class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">Classical homeopathy, from a store near you</p>
+        <h1>Tell us what ails you.<br>We'll bring the remedy.</h1>
+        <p class="hero-sub">Browse remedies by the part of you that needs care, or search by name — genuine potencies, packed by your neighbourhood pharmacy, at your door inside the hour.</p>
+        <div class="hero-cta">
+          <button class="btn btn-primary" data-nav="systems">Find a remedy</button>
+          <button class="btn btn-ghost" data-nav="orders">Track an order</button>
+        </div>
+      </div>
+      <div class="hero-mark" aria-hidden="true">
+        <svg viewBox="0 0 220 220" width="220" height="220">
+          <circle cx="110" cy="110" r="108" fill="none" stroke="var(--sage)" stroke-width="1.5"/>
+          <path d="M110 40 C150 70, 150 150, 110 180 C70 150, 70 70, 110 40 Z" fill="var(--sage-light)" stroke="var(--forest)" stroke-width="1.5"/>
+          <line x1="110" y1="40" x2="110" y2="180" stroke="var(--forest)" stroke-width="1.5"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h2>Three systems, one delivery</h2>
+      <p class="muted" style="margin-top:-10px">Each system of medicine has its own compartment and its own store partners — pick one to browse, or bring a prescription.</p>
+      <div class="category-grid" id="systemGridHome"></div>
+    </div>
+
+    <div class="section-block strip">
+      <div class="strip-item"><strong>Under 60 minutes</strong><span>Dispatched from the store closest to you</span></div>
+      <div class="strip-item"><strong>Pharmacist-verified</strong><span>Every order checked before it leaves the store</span></div>
+      <div class="strip-item"><strong>Pay your way</strong><span>Card, UPI, or cash at the door</span></div>
+    </div>
+  </section>
+
+  <!-- REGISTER -->
+  <section class="view" id="view-register" hidden>
+    <div class="auth-card">
+      <h2>Create your account</h2>
+      <p class="muted">You'll need this to place an order.</p>
+      <form id="registerForm">
+        <label>Full name<input type="text" name="name" required></label>
+        <label>Email<input type="email" name="email" required></label>
+        <label>Phone<input type="tel" name="phone" pattern="[0-9]{10}" placeholder="10-digit number" required></label>
+        <label>Password<input type="password" name="password" minlength="4" required></label>
+        <p class="form-error" id="registerError"></p>
+        <button class="btn btn-primary" type="submit">Register</button>
+      </form>
+      <p class="switch-line">Already have an account? <a href="#" data-nav="login">Log in</a></p>
+    </div>
+  </section>
+
+  <!-- LOGIN -->
+  <section class="view" id="view-login" hidden>
+    <div class="auth-card">
+      <h2>Log in</h2>
+      <form id="loginForm">
+        <label>Email<input type="email" name="email" required></label>
+        <label>Password<input type="password" name="password" required></label>
+        <p class="form-error" id="loginError"></p>
+        <button class="btn btn-primary" type="submit">Log in</button>
+      </form>
+      <p class="switch-line">New here? <a href="#" data-nav="register">Create an account</a></p>
+    </div>
+  </section>
+
+  <!-- SYSTEMS (compartments) -->
+  <section class="view" id="view-systems" hidden>
+    <h2>Choose a system of medicine</h2>
+    <p class="muted" style="margin-top:-10px">Each compartment is stocked and dispatched separately.</p>
+    <div class="category-grid" id="systemGrid"></div>
+  </section>
+
+  <!-- CATEGORIES (within a chosen system) -->
+  <section class="view" id="view-categories" hidden>
+    <button class="link-back" data-nav="systems">&larr; All systems</button>
+    <div class="categories-head">
+      <h2 id="categoriesTitle">Choose a category</h2>
+      <button class="btn btn-ghost" id="prescriptionLinkBtn">Have a prescription instead?</button>
+    </div>
+    <div class="category-grid" id="categoryGridFull"></div>
+  </section>
+
+  <!-- PRESCRIPTION-BASED SELECTION -->
+  <section class="view" id="view-prescription" hidden>
+    <button class="link-back" id="prescriptionBackBtn">&larr; Back to categories</button>
+    <h2 id="prescriptionTitle">Order from a prescription</h2>
+    <p class="muted">Type each medicine the way it appears on your prescription, one per line — name and potency/strength if you have it. We'll match what we can from this store's stock.</p>
+    <div class="prescription-grid">
+      <form id="prescriptionForm">
+        <label>Prescribed medicines (one per line)
+          <textarea name="rx" rows="6" placeholder="Nux Vomica 30C&#10;Arnica Montana 30C"></textarea>
+        </label>
+        <label>Attach a photo of the prescription (optional)
+          <input type="file" name="rxImage" accept="image/*">
+        </label>
+        <p class="muted" style="font-size:0.8rem">We don't read the photo automatically in this demo — it's just attached to your order for the store pharmacist to check.</p>
+        <button class="btn btn-primary" type="submit">Match to catalogue</button>
+      </form>
+      <div id="prescriptionResults" class="prescription-results"></div>
+    </div>
+  </section>
+
+  <!-- PRODUCT LIST (category or search results) -->
+  <section class="view" id="view-products" hidden>
+    <button class="link-back" data-nav="categories">&larr; All categories</button>
+    <h2 id="productListTitle">Remedies</h2>
+    <div class="product-grid" id="productGrid"></div>
+    <p class="empty-note" id="productEmpty" hidden>No remedies matched — try another search.</p>
+  </section>
+
+  <!-- CART -->
+  <section class="view" id="view-cart" hidden>
+    <h2>Your cart</h2>
+    <div id="cartItems"></div>
+    <div class="cart-summary" id="cartSummary" hidden>
+      <div class="row"><span>Subtotal</span><span id="cartSubtotal"></span></div>
+      <div class="row"><span>Delivery</span><span>₹29</span></div>
+      <div class="row total"><span>Total</span><span id="cartTotal"></span></div>
+      <button class="btn btn-primary btn-block" id="toCheckoutBtn">Proceed to checkout</button>
+    </div>
+    <p class="empty-note" id="cartEmpty" hidden>Your cart is empty.</p>
+  </section>
+
+  <!-- CHECKOUT -->
+  <section class="view" id="view-checkout" hidden>
+    <h2>Checkout</h2>
+    <div class="checkout-grid">
+      <form id="checkoutForm" class="checkout-form">
+        <h3>Delivery address</h3>
+        <label>Full address<textarea name="address" rows="3" required></textarea></label>
+        <label>Landmark (optional)<input type="text" name="landmark"></label>
+        <h3>Payment</h3>
+        <label class="radio-line"><input type="radio" name="payment" value="cod" checked> Cash on delivery</label>
+        <label class="radio-line"><input type="radio" name="payment" value="online"> Pay online (UPI / Card)</label>
+        <div id="onlineFields" class="online-fields" hidden>
+          <label>UPI ID or card number<input type="text" name="paymentRef" placeholder="name@upi or 16-digit card"></label>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Place order</button>
+      </form>
+      <aside class="checkout-side">
+        <h3>Nearest store</h3>
+        <div id="storeCard" class="store-card"></div>
+        <h3>Order summary</h3>
+        <div id="checkoutSummary"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ORDERS -->
+  <section class="view" id="view-orders" hidden>
+    <h2>Your orders</h2>
+    <div id="ordersList"></div>
+    <p class="empty-note" id="ordersEmpty" hidden>No orders yet — your first remedy is a search away.</p>
+  </section>
+
+</main>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="data.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
