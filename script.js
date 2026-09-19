@@ -1,24 +1,70 @@
-// ---- Storage helpers (localStorage stands in for a backend) ----
-const db = {
-  users: () => JSON.parse(localStorage.getItem('vc_users') || '[]'),
-  saveUsers: (u) => localStorage.setItem('vc_users', JSON.stringify(u)),
-  session: () => localStorage.getItem('vc_session'),
-  setSession: (email) => localStorage.setItem('vc_session', email),
-  clearSession: () => localStorage.removeItem('vc_session'),
-  cart: (email) => JSON.parse(localStorage.getItem('vc_cart_' + email) || '[]'),
-  saveCart: (email, cart) => localStorage.setItem('vc_cart_' + email, JSON.stringify(cart)),
-  orders: (email) => JSON.parse(localStorage.getItem('vc_orders_' + email) || '[]'),
-  saveOrders: (email, orders) => localStorage.setItem('vc_orders_' + email, JSON.stringify(orders)),
+// ---- Backend API base URL ----
+// Agar backend kisi aur server/port pe deploy karo, sirf yeh line badalni hai.
+const API_BASE = 'http://localhost:5000/api';
+
+// ---- Session (login state) — sirf email/name yaha local rehta hai,          ----
+// ---- password kabhi bhi browser me store nahi hota, sab MongoDB me hai     ----
+const session = {
+  get: () => JSON.parse(localStorage.getItem('vc_session') || 'null'),
+  set: (user) => localStorage.setItem('vc_session', JSON.stringify(user)),
+  clear: () => localStorage.removeItem('vc_session'),
 };
+
+// ---- Backend helpers ----
+async function apiGet(path) {
+  const res = await fetch(API_BASE + path);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Request failed');
+  return res.json();
+}
+async function apiPost(path, body) {
+  const res = await fetch(API_BASE + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+async function apiPut(path, body) {
+  const res = await fetch(API_BASE + path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+async function apiPatch(path, body) {
+  const res = await fetch(API_BASE + path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+async function getCart(email) {
+  try { return await apiGet('/cart/' + encodeURIComponent(email)); }
+  catch { return []; }
+}
+async function saveCart(email, items) {
+  await apiPut('/cart/' + encodeURIComponent(email), { items });
+}
+async function getOrders(email) {
+  try { return await apiGet('/orders/' + encodeURIComponent(email)); }
+  catch { return []; }
+}
 
 let currentSystem = null;
 let currentCategory = null;
 let currentSearch = null;
 
 function currentUser() {
-  const email = db.session();
-  if (!email) return null;
-  return db.users().find(u => u.email === email) || null;
+  return session.get();
 }
 
 function showToast(msg) {
@@ -30,17 +76,17 @@ function showToast(msg) {
 }
 
 // ---- Routing ----
-function showView(name) {
+async function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.hidden = true);
   document.getElementById('view-' + name).hidden = false;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'systems') renderSystemGrid('systemGrid');
   if (name === 'categories') renderCategoriesView();
   if (name === 'prescription') renderPrescriptionView();
-  if (name === 'cart') renderCart();
-  if (name === 'checkout') renderCheckout();
-  if (name === 'orders') renderOrders();
-  updateAccountButton();
+  if (name === 'cart') await renderCart();
+  if (name === 'checkout') await renderCheckout();
+  if (name === 'orders') await renderOrders();
+  await updateAccountButton();
 }
 
 function requireAuth(next) {
@@ -65,7 +111,7 @@ document.querySelectorAll('[data-nav]').forEach(el => {
   });
 });
 
-function updateAccountButton() {
+async function updateAccountButton() {
   const btn = document.getElementById('accountBtn');
   const user = currentUser();
   if (user) {
@@ -73,7 +119,7 @@ function updateAccountButton() {
     btn.onclick = (e) => {
       e.preventDefault();
       if (confirm('Log out of VanaCare?')) {
-        db.clearSession();
+        session.clear();
         showToast('Logged out');
         showView('home');
       }
@@ -82,12 +128,13 @@ function updateAccountButton() {
     btn.textContent = 'Account';
     btn.onclick = (e) => { e.preventDefault(); showView('login'); };
   }
-  updateCartCount();
+  await updateCartCount();
 }
 
-function updateCartCount() {
+async function updateCartCount() {
   const user = currentUser();
-  const count = user ? db.cart(user.email).reduce((s, i) => s + i.qty, 0) : 0;
+  const cart = user ? await getCart(user.email) : [];
+  const count = cart.reduce((s, i) => s + i.qty, 0);
   document.getElementById('cartCount').textContent = count;
 }
 
@@ -182,9 +229,12 @@ function renderPrescriptionView() {
   document.getElementById('prescriptionResults').innerHTML = '<p class="muted">Matches will appear here once you submit.</p>';
 }
 
+let lastPrescriptionText = '';
+
 document.getElementById('prescriptionForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const raw = new FormData(e.target).get('rx') || '';
+  lastPrescriptionText = raw;
   const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
   const resultsEl = document.getElementById('prescriptionResults');
   if (lines.length === 0) {
@@ -219,17 +269,17 @@ document.getElementById('prescriptionForm').addEventListener('submit', (e) => {
   const addBtn = document.getElementById('addRxBtn');
   if (addBtn) {
     addBtn.addEventListener('click', () => {
-      requireAuth(() => {
+      requireAuth(async () => {
         const user = currentUser();
-        const cart = db.cart(user.email);
+        const cart = await getCart(user.email);
         resultsEl.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
           const pid = cb.dataset.pid;
           const existing = cart.find(i => i.id === pid);
           if (existing) existing.qty += 1;
           else cart.push({ id: pid, qty: 1 });
         });
-        db.saveCart(user.email, cart);
-        updateCartCount();
+        await saveCart(user.email, cart);
+        await updateCartCount();
         showToast('Added matched medicines to cart');
         showView('cart');
       });
@@ -247,21 +297,21 @@ document.getElementById('searchInput').addEventListener('keydown', (e) => {
 
 // ---- Cart ----
 function addToCart(productId) {
-  requireAuth(() => {
+  requireAuth(async () => {
     const user = currentUser();
-    const cart = db.cart(user.email);
+    const cart = await getCart(user.email);
     const existing = cart.find(i => i.id === productId);
     if (existing) existing.qty += 1;
     else cart.push({ id: productId, qty: 1 });
-    db.saveCart(user.email, cart);
-    updateCartCount();
+    await saveCart(user.email, cart);
+    await updateCartCount();
     showToast('Added to cart');
   });
 }
 
-function renderCart() {
+async function renderCart() {
   const user = currentUser();
-  const cart = db.cart(user.email);
+  const cart = await getCart(user.email);
   const wrap = document.getElementById('cartItems');
   const empty = document.getElementById('cartEmpty');
   const summary = document.getElementById('cartSummary');
@@ -299,23 +349,23 @@ function renderCart() {
   wrap.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => removeFromCart(b.dataset.remove)));
 }
 
-function changeQty(id, delta) {
+async function changeQty(id, delta) {
   const user = currentUser();
-  const cart = db.cart(user.email);
+  const cart = await getCart(user.email);
   const item = cart.find(i => i.id === id);
   item.qty += delta;
   const finalCart = item.qty <= 0 ? cart.filter(i => i.id !== id) : cart;
-  db.saveCart(user.email, finalCart);
-  renderCart();
-  updateCartCount();
+  await saveCart(user.email, finalCart);
+  await renderCart();
+  await updateCartCount();
 }
 
-function removeFromCart(id) {
+async function removeFromCart(id) {
   const user = currentUser();
-  const cart = db.cart(user.email).filter(i => i.id !== id);
-  db.saveCart(user.email, cart);
-  renderCart();
-  updateCartCount();
+  const cart = (await getCart(user.email)).filter(i => i.id !== id);
+  await saveCart(user.email, cart);
+  await renderCart();
+  await updateCartCount();
 }
 
 document.getElementById('toCheckoutBtn').addEventListener('click', () => showView('checkout'));
@@ -323,9 +373,9 @@ document.getElementById('toCheckoutBtn').addEventListener('click', () => showVie
 // ---- Checkout ----
 let checkoutStore = null;
 
-function renderCheckout() {
+async function renderCheckout() {
   const user = currentUser();
-  const cart = db.cart(user.email);
+  const cart = await getCart(user.email);
   if (cart.length === 0) { showView('cart'); return; }
   checkoutStore = pickNearestStore();
   document.getElementById('storeCard').innerHTML =
@@ -349,7 +399,7 @@ document.querySelectorAll('input[name="payment"]').forEach(r => {
   });
 });
 
-document.getElementById('checkoutForm').addEventListener('submit', (e) => {
+document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const user = currentUser();
   const form = new FormData(e.target);
@@ -358,10 +408,11 @@ document.getElementById('checkoutForm').addEventListener('submit', (e) => {
     showToast('Add a UPI ID or card number to pay online');
     return;
   }
-  const cart = db.cart(user.email);
+  const cart = await getCart(user.email);
   const subtotal = cart.reduce((s, i) => s + PRODUCTS.find(p => p.id === i.id).price * i.qty, 0);
   const order = {
-    id: 'VC' + Date.now().toString().slice(-8),
+    orderCode: 'VC' + Date.now().toString().slice(-8),
+    userEmail: user.email,
     items: cart,
     total: subtotal + 29,
     address: form.get('address'),
@@ -371,23 +422,26 @@ document.getElementById('checkoutForm').addEventListener('submit', (e) => {
     placedAt: Date.now(),
     etaMin: checkoutStore.etaMin,
     stage: 0, // 0 placed, 1 packed, 2 out for delivery, 3 delivered
+    prescriptionText: lastPrescriptionText || undefined,
   };
-  const orders = db.orders(user.email);
-  orders.unshift(order);
-  db.saveOrders(user.email, orders);
-  db.saveCart(user.email, []);
-  updateCartCount();
-  e.target.reset();
-  showToast('Order placed — tracking it now');
-  showView('orders');
+  try {
+    await apiPost('/orders', order);
+    await saveCart(user.email, []);
+    await updateCartCount();
+    e.target.reset();
+    showToast('Order placed — tracking it now');
+    showView('orders');
+  } catch (err) {
+    showToast('Order place nahi ho paya: ' + err.message);
+  }
 });
 
 // ---- Orders / tracking ----
 const STAGE_LABELS = ['Placed', 'Packed', 'Out for delivery', 'Delivered'];
 
-function renderOrders() {
+async function renderOrders() {
   const user = currentUser();
-  const orders = db.orders(user.email);
+  const orders = await getOrders(user.email);
   const wrap = document.getElementById('ordersList');
   const empty = document.getElementById('ordersEmpty');
   if (orders.length === 0) {
@@ -401,7 +455,7 @@ function renderOrders() {
     return `
     <div class="order-card">
       <div class="order-head">
-        <h3 style="margin:0">Order ${o.id}</h3>
+        <h3 style="margin:0">Order ${o.orderCode}</h3>
         <span class="order-status">${STAGE_LABELS[o.stage]}</span>
       </div>
       <div class="progress-track">
@@ -414,67 +468,80 @@ function renderOrders() {
   }).join('');
 }
 
-// Simulate an order progressing toward delivery over real time.
-setInterval(() => {
+// Simulate an order progressing toward delivery over real time,
+// aur MongoDB me stage update karte rehna.
+setInterval(async () => {
   const user = currentUser();
   if (!user) return;
-  const orders = db.orders(user.email);
+  const orders = await getOrders(user.email);
   let changed = false;
-  orders.forEach(o => {
+  for (const o of orders) {
     const minsSince = (Date.now() - o.placedAt) / 60000;
     const targetStage = minsSince > o.etaMin ? 3 : minsSince > o.etaMin * 0.6 ? 2 : minsSince > o.etaMin * 0.15 ? 1 : 0;
-    if (targetStage > o.stage) { o.stage = targetStage; changed = true; }
-  });
-  if (changed) {
-    db.saveOrders(user.email, orders);
-    if (!document.getElementById('view-orders').hidden) renderOrders();
+    if (targetStage > o.stage) {
+      await apiPatch('/orders/' + o.orderCode + '/stage', { stage: targetStage });
+      changed = true;
+    }
   }
+  if (changed && !document.getElementById('view-orders').hidden) renderOrders();
 }, 15000);
 
 // ---- Auth ----
-document.getElementById('registerForm').addEventListener('submit', (e) => {
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = new FormData(e.target);
-  const email = form.get('email').trim().toLowerCase();
-  const users = db.users();
   const errEl = document.getElementById('registerError');
-  if (users.some(u => u.email === email)) {
-    errEl.textContent = 'An account with this email already exists.';
-    return;
+  try {
+    const user = await apiPost('/signup', {
+      name: form.get('name').trim(),
+      email: form.get('email').trim().toLowerCase(),
+      phone: form.get('phone').trim(),
+      password: form.get('password'),
+    });
+    session.set(user);
+    errEl.textContent = '';
+    e.target.reset();
+    showToast('Welcome to VanaCare, ' + user.name.split(' ')[0]);
+    showView('categories');
+  } catch (err) {
+    errEl.textContent = err.message;
   }
-  users.push({
-    name: form.get('name').trim(),
-    email,
-    phone: form.get('phone').trim(),
-    password: form.get('password'),
-  });
-  db.saveUsers(users);
-  db.setSession(email);
-  errEl.textContent = '';
-  e.target.reset();
-  showToast('Welcome to VanaCare, ' + form.get('name').split(' ')[0]);
-  showView('categories');
 });
 
-document.getElementById('loginForm').addEventListener('submit', (e) => {
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = new FormData(e.target);
-  const email = form.get('email').trim().toLowerCase();
-  const password = form.get('password');
-  const user = db.users().find(u => u.email === email && u.password === password);
   const errEl = document.getElementById('loginError');
-  if (!user) {
-    errEl.textContent = 'Incorrect email or password.';
-    return;
+  try {
+    const user = await apiPost('/login', {
+      email: form.get('email').trim().toLowerCase(),
+      password: form.get('password'),
+    });
+    session.set(user);
+    errEl.textContent = '';
+    e.target.reset();
+    showToast('Welcome back, ' + user.name.split(' ')[0]);
+    showView('categories');
+  } catch (err) {
+    errEl.textContent = err.message;
   }
-  db.setSession(email);
-  errEl.textContent = '';
-  e.target.reset();
-  showToast('Welcome back, ' + user.name.split(' ')[0]);
-  showView('categories');
 });
 
 // ---- Init ----
+// data.js ke hardcoded PRODUCTS ko fallback rakhte hue, backend se live data laane ki koshish karo.
+// PRODUCTS 'const' hai isliye reassign nahi karte, uski content ko replace karte hain.
+(async function loadProductsFromBackend() {
+  try {
+    const live = await apiGet('/products');
+    if (Array.isArray(live) && live.length) {
+      PRODUCTS.length = 0;
+      PRODUCTS.push(...live);
+    }
+  } catch (err) {
+    console.warn('Backend se products nahi mil paye, data.js wale fallback products use ho rahe hain.', err.message);
+  }
+})();
+
 renderSystemGrid('systemGridHome');
 updateAccountButton();
 showView('home');

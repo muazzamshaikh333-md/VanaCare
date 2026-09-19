@@ -43,4 +43,18 @@ module.exports = [
   { id: 'd5', name: 'Chlorhexidine Mouthwash', potency: '200ml', system: 'dental', category: 'dental-gum', price: 145, prescriptionOnly: true, desc: 'Antiseptic rinse for gum infections.' },
   { id: 'd6', name: 'Herbal Antiseptic Mouthwash', potency: '200ml', system: 'dental', category: 'dental-hygiene', price: 120, prescriptionOnly: false, desc: 'Daily rinse for fresh breath and hygiene.' },
   { id: 'd7', name: 'Medicated Toothpaste', potency: '100g', system: 'dental', category: 'dental-hygiene', price: 95, prescriptionOnly: false, desc: 'Fluoride-free paste for sensitive gums.' },
+
+  // --- Allopathy / Post-Surgery Care (MBBS/MD-prescribed) ---
+  { id: 'al1', name: 'Ecosprin (Aspirin)', potency: '75mg', system: 'allopathy', category: 'cardiac', price: 25, prescriptionOnly: true, desc: 'Blood thinner commonly prescribed after bypass or angioplasty.' },
+  { id: 'al2', name: 'Clopidogrel', potency: '75mg', system: 'allopathy', category: 'cardiac', price: 85, prescriptionOnly: true, desc: 'Prevents clot formation after cardiac stent or bypass surgery.' },
+  { id: 'al3', name: 'Atorvastatin', potency: '20mg', system: 'allopathy', category: 'cardiac', price: 110, prescriptionOnly: true, desc: 'Cholesterol-lowering statin for post-cardiac recovery.' },
+  { id: 'al4', name: 'Metoprolol', potency: '25mg', system: 'allopathy', category: 'cardiac', price: 65, prescriptionOnly: true, desc: 'Beta-blocker to manage heart rate after cardiac surgery.' },
+  { id: 'al5', name: 'Metformin', potency: '500mg', system: 'allopathy', category: 'diabetes', price: 45, prescriptionOnly: true, desc: 'First-line medicine for blood sugar management.' },
+  { id: 'al6', name: 'Glimepiride', potency: '2mg', system: 'allopathy', category: 'diabetes', price: 70, prescriptionOnly: true, desc: 'Helps control blood sugar levels in type 2 diabetes.' },
+  { id: 'al7', name: 'Amlodipine', potency: '5mg', system: 'allopathy', category: 'bp', price: 55, prescriptionOnly: true, desc: 'Commonly prescribed for hypertension management.' },
+  { id: 'al8', name: 'Telmisartan', potency: '40mg', system: 'allopathy', category: 'bp', price: 95, prescriptionOnly: true, desc: 'ARB medicine for blood pressure control.' },
+  { id: 'al9', name: 'Tramadol', potency: '50mg', system: 'allopathy', category: 'pain-wound', price: 80, prescriptionOnly: true, desc: 'Short-course pain relief after major surgery.' },
+  { id: 'al10', name: 'Povidone-Iodine Solution', potency: '100ml', system: 'allopathy', category: 'pain-wound', price: 60, prescriptionOnly: false, desc: 'Antiseptic solution for wound dressing.' },
+  { id: 'al11', name: 'Amoxiclav', potency: '625mg', system: 'allopathy', category: 'surgery-recovery', price: 130, prescriptionOnly: true, desc: 'Broad-spectrum antibiotic for post-surgical infection prevention.' },
+  { id: 'al12', name: 'Multivitamin & Zinc', potency: '30 tabs', system: 'allopathy', category: 'surgery-recovery', price: 150, prescriptionOnly: false, desc: 'Supports faster wound healing and recovery.' },
 ];
