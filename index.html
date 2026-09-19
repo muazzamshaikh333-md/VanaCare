@@ -10,7 +10,22 @@
 
 <header class="site-header">
   <div class="header-inner">
-    <a href="#" class="logo" data-nav="home">Vana<span>Care</span></a>
+    <a href="#" class="logo" data-nav="home">
+      <svg viewBox="0 0 200 200" width="28" height="28" class="logo-icon" aria-hidden="true">
+        <path d="M55 35 C38 62, 40 92, 58 112 C66 122, 78 128, 88 130"
+              fill="none" stroke="#1E6FA8" stroke-width="10" stroke-linecap="round"/>
+        <path d="M145 35 C162 62, 160 92, 142 112 C134 122, 122 128, 112 130"
+              fill="none" stroke="#1E6FA8" stroke-width="10" stroke-linecap="round"/>
+        <circle cx="55" cy="32" r="11" fill="#1E6FA8"/>
+        <circle cx="145" cy="32" r="11" fill="#1E6FA8"/>
+        <line x1="100" y1="150" x2="100" y2="98" stroke="#0F6E56" stroke-width="12" stroke-linecap="round"/>
+        <circle cx="100" cy="94" r="13" fill="#0F6E56"/>
+        <ellipse cx="100" cy="132" rx="34" ry="10" fill="#BFEAE0" stroke="#0F6E56" stroke-width="5"/>
+        <path d="M67 132 L76 165 C82 178, 118 178, 124 165 L133 132"
+              fill="#BFEAE0" stroke="#0F6E56" stroke-width="5" stroke-linejoin="round"/>
+      </svg>
+      Vana<span>Care</span>
+    </a>
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="Search remedies — Arnica, cold, acidity…">
       <button id="searchBtn">Search</button>
@@ -36,19 +51,25 @@
           <button class="btn btn-ghost" data-nav="orders">Track an order</button>
         </div>
       </div>
-      <div class="hero-mark" aria-hidden="true">
-        <svg viewBox="0 0 220 220" width="220" height="220">
-          <circle cx="110" cy="110" r="108" fill="none" stroke="var(--sage)" stroke-width="1.5"/>
-          <path d="M110 40 C150 70, 150 150, 110 180 C70 150, 70 70, 110 40 Z" fill="var(--sage-light)" stroke="var(--forest)" stroke-width="1.5"/>
-          <line x1="110" y1="40" x2="110" y2="180" stroke="var(--forest)" stroke-width="1.5"/>
-        </svg>
-      </div>
     </div>
 
     <div class="section-block">
-      <h2>Three systems, one delivery</h2>
-      <p class="muted" style="margin-top:-10px">Each system of medicine has its own compartment and its own store partners — pick one to browse, or bring a prescription.</p>
+      <h2>Home delivery of any medicine</h2>
+      <p class="muted" style="margin-top:-10px">Whatever you need — homeopathy, ayurveda, dental, or allopathy — we deliver it to your door within the hour.</p>
       <div class="category-grid" id="systemGridHome"></div>
+    </div>
+
+    <div class="section-block">
+      <h2>Not sure which type of medicine you need?</h2>
+      <p class="muted" style="margin-top:-10px">No problem — search directly by name, or just upload your prescription. No need to pick a system first.</p>
+      <div class="quick-order-box">
+        <div class="quick-order-search">
+          <input type="text" id="homeQuickSearch" placeholder="Type a medicine name, e.g. Paracetamol, Ashwagandha…">
+          <button class="btn btn-primary" id="homeQuickSearchBtn">Search</button>
+        </div>
+        <div class="quick-order-or">or</div>
+        <button class="btn btn-ghost btn-block" id="homePrescriptionBtn">📄 Upload a prescription photo — we'll match the medicines for you</button>
+      </div>
     </div>
 
     <div class="section-block strip">

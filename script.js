@@ -224,24 +224,46 @@ function renderProductGrid(list) {
 
 // ---- Prescription-based selection ----
 function renderPrescriptionView() {
-  const sys = SYSTEMS.find(s => s.id === currentSystem) || SYSTEMS[0];
-  document.getElementById('prescriptionTitle').textContent = `Order from a prescription — ${sys.name}`;
+  const sys = currentSystem ? SYSTEMS.find(s => s.id === currentSystem) : null;
+  document.getElementById('prescriptionTitle').textContent = sys
+    ? `Order from a prescription — ${sys.name}`
+    : 'Order from a prescription — any medicine';
   document.getElementById('prescriptionResults').innerHTML = '<p class="muted">Matches will appear here once you submit.</p>';
 }
 
 let lastPrescriptionText = '';
+let lastPrescriptionImage = null;
 
-document.getElementById('prescriptionForm').addEventListener('submit', (e) => {
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('prescriptionForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const raw = new FormData(e.target).get('rx') || '';
+  const form = new FormData(e.target);
+  const raw = form.get('rx') || '';
   lastPrescriptionText = raw;
+
+  const imageFile = form.get('rxImage');
+  lastPrescriptionImage = (imageFile && imageFile.size > 0) ? await readFileAsDataURL(imageFile) : null;
+
   const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
   const resultsEl = document.getElementById('prescriptionResults');
+
   if (lines.length === 0) {
-    resultsEl.innerHTML = '<p class="muted">Add at least one medicine name above.</p>';
+    if (lastPrescriptionImage) {
+      resultsEl.innerHTML = '<p class="muted">Photo received. Type the medicine names above too so we can add them to your cart — the pharmacist will double-check against the photo before dispatch.</p>';
+    } else {
+      resultsEl.innerHTML = '<p class="muted">Add at least one medicine name above, or attach a photo.</p>';
+    }
     return;
   }
-  const pool = PRODUCTS.filter(p => p.system === currentSystem);
+  const pool = currentSystem ? PRODUCTS.filter(p => p.system === currentSystem) : PRODUCTS;
   const matches = [];
   const unmatched = [];
   lines.forEach(line => {
@@ -423,6 +445,7 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
     etaMin: checkoutStore.etaMin,
     stage: 0, // 0 placed, 1 packed, 2 out for delivery, 3 delivered
     prescriptionText: lastPrescriptionText || undefined,
+    prescriptionImage: lastPrescriptionImage || undefined,
   };
   try {
     await apiPost('/orders', order);
@@ -525,6 +548,19 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   } catch (err) {
     errEl.textContent = err.message;
   }
+});
+
+// ---- Home page: direct search / prescription without picking a system ----
+document.getElementById('homeQuickSearchBtn').addEventListener('click', () => {
+  const q = document.getElementById('homeQuickSearch').value.trim();
+  if (q) runSearch(q);
+});
+document.getElementById('homeQuickSearch').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('homeQuickSearchBtn').click();
+});
+document.getElementById('homePrescriptionBtn').addEventListener('click', () => {
+  currentSystem = null; // no system chosen — match against the full catalogue
+  requireAuth(() => showView('prescription'));
 });
 
 // ---- Init ----

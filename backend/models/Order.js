@@ -21,6 +21,7 @@ const orderSchema = new mongoose.Schema({
   etaMin: Number,
   stage: { type: Number, default: 0 }, // 0 placed, 1 packed, 2 out for delivery, 3 delivered
   prescriptionText: String, // optional — raw prescription lines submitted with this order
+  prescriptionImage: String, // optional — base64 photo of the prescription (demo only; use file storage like S3 in production)
   placedAt: { type: Number, default: () => Date.now() },
 }, { timestamps: true });
 
