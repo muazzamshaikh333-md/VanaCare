@@ -1,70 +1,32 @@
-// ---- Backend API base URL ----
-// Agar backend kisi aur server/port pe deploy karo, sirf yeh line badalni hai.
-const API_BASE = 'http://localhost:5000/api';
-
-// ---- Session (login state) — sirf email/name yaha local rehta hai,          ----
-// ---- password kabhi bhi browser me store nahi hota, sab MongoDB me hai     ----
+// ---- Session + cart storage ----
+// Auth now lives on the backend (JWT); cart stays client-side per user,
+// since there's no Cart model yet (that's a later module).
 const session = {
-  get: () => JSON.parse(localStorage.getItem('vc_session') || 'null'),
-  set: (user) => localStorage.setItem('vc_session', JSON.stringify(user)),
-  clear: () => localStorage.removeItem('vc_session'),
+  token: () => localStorage.getItem('vc_token'),
+  user: () => JSON.parse(localStorage.getItem('vc_user') || 'null'),
+  set: (token, user) => {
+    localStorage.setItem('vc_token', token);
+    localStorage.setItem('vc_user', JSON.stringify(user));
+  },
+  clear: () => {
+    localStorage.removeItem('vc_token');
+    localStorage.removeItem('vc_user');
+  },
 };
 
-// ---- Backend helpers ----
-async function apiGet(path) {
-  const res = await fetch(API_BASE + path);
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Request failed');
-  return res.json();
-}
-async function apiPost(path, body) {
-  const res = await fetch(API_BASE + path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Request failed');
-  return data;
-}
-async function apiPut(path, body) {
-  const res = await fetch(API_BASE + path, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Request failed');
-  return data;
-}
-async function apiPatch(path, body) {
-  const res = await fetch(API_BASE + path, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Request failed');
-  return data;
-}
-
-async function getCart(email) {
-  try { return await apiGet('/cart/' + encodeURIComponent(email)); }
-  catch { return []; }
-}
-async function saveCart(email, items) {
-  await apiPut('/cart/' + encodeURIComponent(email), { items });
-}
-async function getOrders(email) {
-  try { return await apiGet('/orders/' + encodeURIComponent(email)); }
-  catch { return []; }
-}
+const cartStore = {
+  cart: (userId) => JSON.parse(localStorage.getItem('vc_cart_' + userId) || '[]'),
+  saveCart: (userId, cart) => localStorage.setItem('vc_cart_' + userId, JSON.stringify(cart)),
+};
 
 let currentSystem = null;
 let currentCategory = null;
 let currentSearch = null;
+let allProducts = [];      // full catalogue, fetched once at load
+let pendingPrescriptionNote = null; // set when an order originates from a prescription match
 
 function currentUser() {
-  return session.get();
+  return session.user();
 }
 
 function showToast(msg) {
@@ -76,17 +38,17 @@ function showToast(msg) {
 }
 
 // ---- Routing ----
-async function showView(name) {
+function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.hidden = true);
   document.getElementById('view-' + name).hidden = false;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'systems') renderSystemGrid('systemGrid');
   if (name === 'categories') renderCategoriesView();
   if (name === 'prescription') renderPrescriptionView();
-  if (name === 'cart') await renderCart();
-  if (name === 'checkout') await renderCheckout();
-  if (name === 'orders') await renderOrders();
-  await updateAccountButton();
+  if (name === 'cart') renderCart();
+  if (name === 'checkout') renderCheckout();
+  if (name === 'orders') renderOrders();
+  updateAccountButton();
 }
 
 function requireAuth(next) {
@@ -111,7 +73,7 @@ document.querySelectorAll('[data-nav]').forEach(el => {
   });
 });
 
-async function updateAccountButton() {
+function updateAccountButton() {
   const btn = document.getElementById('accountBtn');
   const user = currentUser();
   if (user) {
@@ -128,13 +90,12 @@ async function updateAccountButton() {
     btn.textContent = 'Account';
     btn.onclick = (e) => { e.preventDefault(); showView('login'); };
   }
-  await updateCartCount();
+  updateCartCount();
 }
 
-async function updateCartCount() {
+function updateCartCount() {
   const user = currentUser();
-  const cart = user ? await getCart(user.email) : [];
-  const count = cart.reduce((s, i) => s + i.qty, 0);
+  const count = user ? cartStore.cart(user.id).reduce((s, i) => s + i.qty, 0) : 0;
   document.getElementById('cartCount').textContent = count;
 }
 
@@ -186,7 +147,7 @@ function openCategory(catId) {
   const sys = SYSTEMS.find(s => s.id === cat.system);
   document.getElementById('productListTitle').textContent = `${sys.name} — ${cat.name}`;
   showView('products');
-  renderProductGrid(PRODUCTS.filter(p => p.category === catId));
+  renderProductGrid(allProducts.filter(p => p.category === catId));
 }
 
 function runSearch(query) {
@@ -194,7 +155,7 @@ function runSearch(query) {
   currentCategory = null;
   document.getElementById('productListTitle').textContent = `Results for "${query}"`;
   const q = query.trim().toLowerCase();
-  const results = PRODUCTS.filter(p =>
+  const results = allProducts.filter(p =>
     p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q));
   showView('products');
   renderProductGrid(results);
@@ -208,12 +169,12 @@ function renderProductGrid(list) {
     const sys = SYSTEMS.find(s => s.id === p.system);
     return `
     <div class="product-card">
-      <span class="potency-tag">${p.potency} · ${sys.name}</span>
+      <span class="potency-tag">${p.potency} · ${sys ? sys.name : p.system}</span>
       <h3>${p.name}${p.prescriptionOnly ? '<span class="rx-tag">Rx</span>' : ''}</h3>
       <p>${p.desc}</p>
       <div class="product-foot">
         <span class="price">₹${p.price}</span>
-        <button class="btn btn-ghost" data-add="${p.id}">Add to cart</button>
+        <button class="btn btn-ghost" data-add="${p._id}">Add to cart</button>
       </div>
     </div>`;
   }).join('');
@@ -224,46 +185,21 @@ function renderProductGrid(list) {
 
 // ---- Prescription-based selection ----
 function renderPrescriptionView() {
-  const sys = currentSystem ? SYSTEMS.find(s => s.id === currentSystem) : null;
-  document.getElementById('prescriptionTitle').textContent = sys
-    ? `Order from a prescription — ${sys.name}`
-    : 'Order from a prescription — any medicine';
+  const sys = SYSTEMS.find(s => s.id === currentSystem) || SYSTEMS[0];
+  document.getElementById('prescriptionTitle').textContent = `Order from a prescription — ${sys.name}`;
   document.getElementById('prescriptionResults').innerHTML = '<p class="muted">Matches will appear here once you submit.</p>';
 }
 
-let lastPrescriptionText = '';
-let lastPrescriptionImage = null;
-
-function readFileAsDataURL(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-document.getElementById('prescriptionForm').addEventListener('submit', async (e) => {
+document.getElementById('prescriptionForm').addEventListener('submit', (e) => {
   e.preventDefault();
-  const form = new FormData(e.target);
-  const raw = form.get('rx') || '';
-  lastPrescriptionText = raw;
-
-  const imageFile = form.get('rxImage');
-  lastPrescriptionImage = (imageFile && imageFile.size > 0) ? await readFileAsDataURL(imageFile) : null;
-
+  const raw = new FormData(e.target).get('rx') || '';
   const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
   const resultsEl = document.getElementById('prescriptionResults');
-
   if (lines.length === 0) {
-    if (lastPrescriptionImage) {
-      resultsEl.innerHTML = '<p class="muted">Photo received. Type the medicine names above too so we can add them to your cart — the pharmacist will double-check against the photo before dispatch.</p>';
-    } else {
-      resultsEl.innerHTML = '<p class="muted">Add at least one medicine name above, or attach a photo.</p>';
-    }
+    resultsEl.innerHTML = '<p class="muted">Add at least one medicine name above.</p>';
     return;
   }
-  const pool = currentSystem ? PRODUCTS.filter(p => p.system === currentSystem) : PRODUCTS;
+  const pool = allProducts.filter(p => p.system === currentSystem);
   const matches = [];
   const unmatched = [];
   lines.forEach(line => {
@@ -277,7 +213,7 @@ document.getElementById('prescriptionForm').addEventListener('submit', async (e)
     (matches.length ? `<h3 style="margin-top:0">Matched in this store</h3>` +
       matches.map((m, i) => `
         <div class="rx-match-row">
-          <input type="checkbox" id="rxm${i}" data-pid="${m.product.id}" checked>
+          <input type="checkbox" id="rxm${i}" data-pid="${m.product._id}" checked>
           <label for="rxm${i}">
             <strong>${m.product.name}</strong> ${m.product.potency}
             ${m.product.prescriptionOnly ? '<span class="rx-tag">Rx</span>' : ''} — ₹${m.product.price}
@@ -291,17 +227,18 @@ document.getElementById('prescriptionForm').addEventListener('submit', async (e)
   const addBtn = document.getElementById('addRxBtn');
   if (addBtn) {
     addBtn.addEventListener('click', () => {
-      requireAuth(async () => {
+      requireAuth(() => {
         const user = currentUser();
-        const cart = await getCart(user.email);
+        const cart = cartStore.cart(user.id);
         resultsEl.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
           const pid = cb.dataset.pid;
           const existing = cart.find(i => i.id === pid);
           if (existing) existing.qty += 1;
           else cart.push({ id: pid, qty: 1 });
         });
-        await saveCart(user.email, cart);
-        await updateCartCount();
+        cartStore.saveCart(user.id, cart);
+        pendingPrescriptionNote = raw; // carried through to the order if this cart is checked out
+        updateCartCount();
         showToast('Added matched medicines to cart');
         showView('cart');
       });
@@ -319,21 +256,21 @@ document.getElementById('searchInput').addEventListener('keydown', (e) => {
 
 // ---- Cart ----
 function addToCart(productId) {
-  requireAuth(async () => {
+  requireAuth(() => {
     const user = currentUser();
-    const cart = await getCart(user.email);
+    const cart = cartStore.cart(user.id);
     const existing = cart.find(i => i.id === productId);
     if (existing) existing.qty += 1;
     else cart.push({ id: productId, qty: 1 });
-    await saveCart(user.email, cart);
-    await updateCartCount();
+    cartStore.saveCart(user.id, cart);
+    updateCartCount();
     showToast('Added to cart');
   });
 }
 
-async function renderCart() {
+function renderCart() {
   const user = currentUser();
-  const cart = await getCart(user.email);
+  const cart = cartStore.cart(user.id);
   const wrap = document.getElementById('cartItems');
   const empty = document.getElementById('cartEmpty');
   const summary = document.getElementById('cartSummary');
@@ -347,7 +284,8 @@ async function renderCart() {
   summary.hidden = false;
   let subtotal = 0;
   wrap.innerHTML = cart.map(item => {
-    const p = PRODUCTS.find(pr => pr.id === item.id);
+    const p = allProducts.find(pr => pr._id === item.id);
+    if (!p) return '';
     subtotal += p.price * item.qty;
     return `
       <div class="cart-row">
@@ -371,23 +309,23 @@ async function renderCart() {
   wrap.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => removeFromCart(b.dataset.remove)));
 }
 
-async function changeQty(id, delta) {
+function changeQty(id, delta) {
   const user = currentUser();
-  const cart = await getCart(user.email);
+  const cart = cartStore.cart(user.id);
   const item = cart.find(i => i.id === id);
   item.qty += delta;
   const finalCart = item.qty <= 0 ? cart.filter(i => i.id !== id) : cart;
-  await saveCart(user.email, finalCart);
-  await renderCart();
-  await updateCartCount();
+  cartStore.saveCart(user.id, finalCart);
+  renderCart();
+  updateCartCount();
 }
 
-async function removeFromCart(id) {
+function removeFromCart(id) {
   const user = currentUser();
-  const cart = (await getCart(user.email)).filter(i => i.id !== id);
-  await saveCart(user.email, cart);
-  await renderCart();
-  await updateCartCount();
+  const cart = cartStore.cart(user.id).filter(i => i.id !== id);
+  cartStore.saveCart(user.id, cart);
+  renderCart();
+  updateCartCount();
 }
 
 document.getElementById('toCheckoutBtn').addEventListener('click', () => showView('checkout'));
@@ -397,15 +335,24 @@ let checkoutStore = null;
 
 async function renderCheckout() {
   const user = currentUser();
-  const cart = await getCart(user.email);
+  const cart = cartStore.cart(user.id);
   if (cart.length === 0) { showView('cart'); return; }
-  checkoutStore = pickNearestStore();
+
+  document.getElementById('storeCard').innerHTML = 'Finding the nearest store…';
+  try {
+    checkoutStore = await Api.nearestStore(currentSystem || 'homeo');
+  } catch (err) {
+    document.getElementById('storeCard').innerHTML = 'Could not find a store right now.';
+    showToast(err.message);
+    return;
+  }
   document.getElementById('storeCard').innerHTML =
-    `<strong>${checkoutStore.name}</strong><br>${checkoutStore.distanceKm} km away — arrives in about ${checkoutStore.etaMin} min`;
+    `<strong>${checkoutStore.name}</strong><br>Estimated delivery: about ${checkoutStore.baseEtaMin} min`;
 
   let subtotal = 0;
   const lines = cart.map(item => {
-    const p = PRODUCTS.find(pr => pr.id === item.id);
+    const p = allProducts.find(pr => pr._id === item.id);
+    if (!p) return '';
     subtotal += p.price * item.qty;
     return `<div class="row"><span>${p.name} × ${item.qty}</span><span>₹${p.price * item.qty}</span></div>`;
   }).join('');
@@ -430,43 +377,60 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
     showToast('Add a UPI ID or card number to pay online');
     return;
   }
-  const cart = await getCart(user.email);
-  const subtotal = cart.reduce((s, i) => s + PRODUCTS.find(p => p.id === i.id).price * i.qty, 0);
-  const order = {
-    orderCode: 'VC' + Date.now().toString().slice(-8),
-    userEmail: user.email,
-    items: cart,
-    total: subtotal + 29,
-    address: form.get('address'),
-    landmark: form.get('landmark'),
-    payment,
-    store: checkoutStore,
-    placedAt: Date.now(),
-    etaMin: checkoutStore.etaMin,
-    stage: 0, // 0 placed, 1 packed, 2 out for delivery, 3 delivered
-    prescriptionText: lastPrescriptionText || undefined,
-    prescriptionImage: lastPrescriptionImage || undefined,
-  };
+  if (!checkoutStore) {
+    showToast('Still finding a store — try again in a moment');
+    return;
+  }
+  const cart = cartStore.cart(user.id);
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Placing order…';
   try {
-    await apiPost('/orders', order);
-    await saveCart(user.email, []);
-    await updateCartCount();
+    await Api.createOrder({
+      items: cart.map(i => ({ productId: i.id, qty: i.qty })),
+      storeId: checkoutStore._id,
+      address: form.get('address'),
+      landmark: form.get('landmark'),
+      payment,
+      paymentRef: form.get('paymentRef') || undefined,
+      prescriptionNote: pendingPrescriptionNote || undefined,
+    });
+    cartStore.saveCart(user.id, []);
+    pendingPrescriptionNote = null;
+    updateCartCount();
     e.target.reset();
     showToast('Order placed — tracking it now');
     showView('orders');
   } catch (err) {
-    showToast('Order place nahi ho paya: ' + err.message);
+    showToast(err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Place order';
   }
 });
 
 // ---- Orders / tracking ----
-const STAGE_LABELS = ['Placed', 'Packed', 'Out for delivery', 'Delivered'];
-
+// Stage labels and numbers come from the backend via each order's `stage`
+// field; STAGES here (data.js) must match backend/config/orderStages.js.
+// No client-side timer: a stage only changes when a delivery partner (or,
+// in a later module, the pharmacy) actually advances it on the server.
 async function renderOrders() {
-  const user = currentUser();
-  const orders = await getOrders(user.email);
   const wrap = document.getElementById('ordersList');
   const empty = document.getElementById('ordersEmpty');
+  wrap.innerHTML = '<p class="muted">Loading your orders…</p>';
+  empty.hidden = true;
+
+  let orders;
+  try {
+    orders = await Api.myOrders();
+  } catch (err) {
+    wrap.innerHTML = '';
+    showToast(err.message);
+    empty.hidden = false;
+    document.getElementById('ordersEmpty').textContent = 'Could not load your orders.';
+    return;
+  }
+
   if (orders.length === 0) {
     wrap.innerHTML = '';
     empty.hidden = false;
@@ -474,60 +438,48 @@ async function renderOrders() {
   }
   empty.hidden = true;
   wrap.innerHTML = orders.map(o => {
-    const minsAgo = Math.floor((Date.now() - o.placedAt) / 60000);
+    const placed = new Date(o.createdAt);
+    const storeName = o.store ? o.store.name : 'Store';
     return `
     <div class="order-card">
       <div class="order-head">
-        <h3 style="margin:0">Order ${o.orderCode}</h3>
-        <span class="order-status">${STAGE_LABELS[o.stage]}</span>
+        <h3 style="margin:0">Order ${o._id.slice(-8).toUpperCase()}</h3>
+        <span class="order-status">${STAGES[o.stage]}</span>
       </div>
       <div class="progress-track">
-        ${STAGE_LABELS.map((_, i) => `<div class="${i <= o.stage ? 'done' : ''}"></div>`).join('')}
+        ${STAGES.map((_, i) => `<div class="${i <= o.stage ? 'done' : ''}"></div>`).join('')}
       </div>
-      <div class="progress-labels">${STAGE_LABELS.map(l => `<span>${l}</span>`).join('')}</div>
-      <p class="eta-note">${o.store.name} • ₹${o.total} • ${o.payment === 'cod' ? 'Cash on delivery' : 'Paid online'}
-        ${o.stage < 3 ? ` • arriving within ${Math.max(o.etaMin - minsAgo, 5)} min` : ' • delivered'}</p>
+      <div class="progress-labels">${STAGES.map(l => `<span>${l}</span>`).join('')}</div>
+      <p class="eta-note">${storeName} • ₹${o.total} • ${o.payment === 'cod' ? 'Cash on delivery' : 'Paid online'}
+        • placed ${placed.toLocaleString()}
+        ${o.stage < STAGES.length - 1 ? ` • estimated ${o.etaMin} min from placement` : ' • delivered'}</p>
     </div>`;
   }).join('');
 }
-
-// Simulate an order progressing toward delivery over real time,
-// aur MongoDB me stage update karte rehna.
-setInterval(async () => {
-  const user = currentUser();
-  if (!user) return;
-  const orders = await getOrders(user.email);
-  let changed = false;
-  for (const o of orders) {
-    const minsSince = (Date.now() - o.placedAt) / 60000;
-    const targetStage = minsSince > o.etaMin ? 3 : minsSince > o.etaMin * 0.6 ? 2 : minsSince > o.etaMin * 0.15 ? 1 : 0;
-    if (targetStage > o.stage) {
-      await apiPatch('/orders/' + o.orderCode + '/stage', { stage: targetStage });
-      changed = true;
-    }
-  }
-  if (changed && !document.getElementById('view-orders').hidden) renderOrders();
-}, 15000);
 
 // ---- Auth ----
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = new FormData(e.target);
   const errEl = document.getElementById('registerError');
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
   try {
-    const user = await apiPost('/signup', {
+    const { token, user } = await Api.register({
       name: form.get('name').trim(),
       email: form.get('email').trim().toLowerCase(),
       phone: form.get('phone').trim(),
       password: form.get('password'),
     });
-    session.set(user);
+    session.set(token, user);
     errEl.textContent = '';
     e.target.reset();
     showToast('Welcome to VanaCare, ' + user.name.split(' ')[0]);
     showView('categories');
   } catch (err) {
     errEl.textContent = err.message;
+  } finally {
+    submitBtn.disabled = false;
   }
 });
 
@@ -535,49 +487,34 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = new FormData(e.target);
   const errEl = document.getElementById('loginError');
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
   try {
-    const user = await apiPost('/login', {
+    const { token, user } = await Api.login({
       email: form.get('email').trim().toLowerCase(),
       password: form.get('password'),
     });
-    session.set(user);
+    session.set(token, user);
     errEl.textContent = '';
     e.target.reset();
     showToast('Welcome back, ' + user.name.split(' ')[0]);
     showView('categories');
   } catch (err) {
     errEl.textContent = err.message;
+  } finally {
+    submitBtn.disabled = false;
   }
-});
-
-// ---- Home page: direct search / prescription without picking a system ----
-document.getElementById('homeQuickSearchBtn').addEventListener('click', () => {
-  const q = document.getElementById('homeQuickSearch').value.trim();
-  if (q) runSearch(q);
-});
-document.getElementById('homeQuickSearch').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('homeQuickSearchBtn').click();
-});
-document.getElementById('homePrescriptionBtn').addEventListener('click', () => {
-  currentSystem = null; // no system chosen — match against the full catalogue
-  requireAuth(() => showView('prescription'));
 });
 
 // ---- Init ----
-// data.js ke hardcoded PRODUCTS ko fallback rakhte hue, backend se live data laane ki koshish karo.
-// PRODUCTS 'const' hai isliye reassign nahi karte, uski content ko replace karte hain.
-(async function loadProductsFromBackend() {
+async function init() {
+  renderSystemGrid('systemGridHome');
+  updateAccountButton();
+  showView('home');
   try {
-    const live = await apiGet('/products');
-    if (Array.isArray(live) && live.length) {
-      PRODUCTS.length = 0;
-      PRODUCTS.push(...live);
-    }
+    allProducts = await Api.products();
   } catch (err) {
-    console.warn('Backend se products nahi mil paye, data.js wale fallback products use ho rahe hain.', err.message);
+    showToast('Could not reach the VanaCare server — is the backend running?');
   }
-})();
-
-renderSystemGrid('systemGridHome');
-updateAccountButton();
-showView('home');
+}
+init();
