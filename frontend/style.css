@@ -295,3 +295,12 @@ form input, form textarea {
   .hero-mark svg { width: 140px; height: 140px; }
   .checkout-grid { grid-template-columns: 1fr; }
 }
+
+.dashboard-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.dashboard-actions .btn, .order-card > .btn { font-size:.82rem; padding:8px 12px; margin:4px 4px 0 0; }
+#view-operations h3 { margin-top:28px; }
+@media (max-width:720px) {
+  .progress-labels { overflow-x:auto; gap:12px; }
+  .progress-labels span { min-width:72px; }
+  .cart-row { gap:10px; flex-wrap:wrap; }
+}

@@ -16,6 +16,7 @@ async function seed() {
     await Product.findOneAndUpdate({ id: p.id }, p, { upsert: true, new: true });
   }
 
+  await Product.updateMany({ stock: { $exists: false } }, { $set: { stock: 50, active: true } });
   console.log(`✅ ${PRODUCTS.length} products seed ho gaye MongoDB me.`);
   process.exit(0);
 }

@@ -17,6 +17,8 @@
     </div>
     <nav class="header-actions">
       <button class="icon-btn" data-nav="cart">Cart <span id="cartCount" class="badge">0</span></button>
+      <button class="icon-btn" id="opsBtn" hidden data-nav="operations">Operations</button>
+      <button class="icon-btn" id="deliveryBtn" hidden data-nav="delivery">Deliveries</button>
       <button class="icon-btn" id="accountBtn" data-nav="login">Account</button>
     </nav>
   </div>
@@ -67,7 +69,7 @@
         <label>Full name<input type="text" name="name" required></label>
         <label>Email<input type="email" name="email" required></label>
         <label>Phone<input type="tel" name="phone" pattern="[0-9]{10}" placeholder="10-digit number" required></label>
-        <label>Password<input type="password" name="password" minlength="4" required></label>
+        <label>Password<input type="password" name="password" minlength="8" required></label>
         <p class="form-error" id="registerError"></p>
         <button class="btn btn-primary" type="submit">Register</button>
       </form>
@@ -153,14 +155,17 @@
     <div class="checkout-grid">
       <form id="checkoutForm" class="checkout-form">
         <h3>Delivery address</h3>
-        <label>Full address<textarea name="address" rows="3" required></textarea></label>
+        <label>Address line<input type="text" name="address" required placeholder="Flat, building, street"></label>
+        <label>City<input type="text" name="city" required></label>
+        <label>State<input type="text" name="state" required></label>
+        <label>PIN code<input type="text" name="pincode" pattern="[0-9]{6}" required></label>
+        <label>Contact phone<input type="tel" name="phone" pattern="[0-9]{10}" required></label>
         <label>Landmark (optional)<input type="text" name="landmark"></label>
+        <label>Coupon code (optional)<input type="text" name="couponCode" placeholder="Enter coupon code"></label>
         <h3>Payment</h3>
         <label class="radio-line"><input type="radio" name="payment" value="cod" checked> Cash on delivery</label>
-        <label class="radio-line"><input type="radio" name="payment" value="online"> Pay online (UPI / Card)</label>
-        <div id="onlineFields" class="online-fields" hidden>
-          <label>UPI ID or card number<input type="text" name="paymentRef" placeholder="name@upi or 16-digit card"></label>
-        </div>
+        <label class="radio-line"><input type="radio" name="payment" value="razorpay"> Pay securely with Razorpay (UPI / Card / Net Banking)</label>
+        <div id="onlineFields" class="online-fields" hidden><p class="muted">Your payment details are entered only in Razorpay Checkout. VanaCare does not store card or UPI credentials.</p></div>
         <button class="btn btn-primary btn-block" type="submit">Place order</button>
       </form>
       <aside class="checkout-side">
@@ -179,10 +184,25 @@
     <p class="empty-note" id="ordersEmpty" hidden>No orders yet — your first remedy is a search away.</p>
   </section>
 
+
+  <!-- PHARMACY / ADMIN OPERATIONS -->
+  <section class="view" id="view-operations" hidden>
+    <h2>Pharmacy operations</h2>
+    <p class="muted">Review incoming orders and prescription requests. Status changes are saved on the server.</p>
+    <h3>Incoming orders</h3><div id="adminOrdersList"></div>
+    <h3>Pending prescriptions</h3><div id="pendingRxList"></div>
+  </section>
+
+  <!-- DELIVERY PARTNER -->
+  <section class="view" id="view-delivery" hidden>
+    <h2>My assigned deliveries</h2><div id="deliveryOrdersList"></div>
+  </section>
+
 </main>
 
 <div id="toast" class="toast" hidden></div>
 
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="data.js"></script>
 <script src="api.js"></script>
 <script src="script.js"></script>
