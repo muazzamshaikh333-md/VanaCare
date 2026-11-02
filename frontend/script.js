@@ -105,6 +105,8 @@ function updateCartCount() {
   document.getElementById('cartCount').textContent = count;
 }
 
+
+document.getElementById('notificationsBtn')?.addEventListener('click',async()=>{if(!currentUser()){showView('login');return;}try{const ns=await Api.notifications();const unread=ns.filter(n=>!n.read);document.getElementById('notificationCount').textContent=unread.length;alert(ns.length?ns.slice(0,8).map(n=>`${n.title||'Update'}: ${n.message||''}`).join('\n\n'):'No notifications yet.');}catch(e){showToast(e.message);}});
 // ---- Systems (compartments) & Categories ----
 function renderSystemGrid(elId) {
   const grid = document.getElementById(elId);
@@ -146,14 +148,27 @@ document.getElementById('prescriptionLinkBtn').addEventListener('click', () => {
 });
 document.getElementById('prescriptionBackBtn').addEventListener('click', () => showView('categories'));
 
-function openCategory(catId) {
+async function openCategory(catId) {
   currentCategory = catId;
   currentSearch = null;
   const cat = CATEGORIES.find(c => c.id === catId);
+  if (!cat) { showToast('Category not found'); return; }
   const sys = SYSTEMS.find(s => s.id === cat.system);
-  document.getElementById('productListTitle').textContent = `${sys.name} — ${cat.name}`;
+  document.getElementById('productListTitle').textContent = `${cat.name} – Products`;
   showView('products');
-  renderProductGrid(allProducts.filter(p => p.category === catId));
+  const grid = document.getElementById('productGrid');
+  grid.innerHTML = '<p class=\"catalogue-loading\">Loading catalogue…</p>';
+  try {
+    const result = await Api.products({ category: catId, limit: 100 });
+    const list = Array.isArray(result) ? result : (result.products || []);
+    const merged = new Map(allProducts.map(p => [String(p._id || p.id), p]));
+    list.forEach(p => merged.set(String(p._id || p.id), p));
+    allProducts = Array.from(merged.values());
+    renderProductGrid(list);
+    if (!list.length) showToast('No active catalogue items in this category yet');
+  } catch (error) {
+    grid.innerHTML = `<p class=\"catalogue-error\">${error.message}</p>`;
+  }
 }
 
 function runSearch(query) {
@@ -162,7 +177,7 @@ function runSearch(query) {
   document.getElementById('productListTitle').textContent = `Results for "${query}"`;
   const q = query.trim().toLowerCase();
   const results = allProducts.filter(p =>
-    p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q));
+    String(p.name||'').toLowerCase().includes(q) || String(p.desc||'').toLowerCase().includes(q) || String(p.brand||'').toLowerCase().includes(q) || String(p.category||'').toLowerCase().includes(q));
   showView('products');
   renderProductGrid(results);
 }
@@ -175,19 +190,24 @@ function renderProductGrid(list) {
     const sys = SYSTEMS.find(s => s.id === p.system);
     return `
     <div class="product-card">
-      <span class="potency-tag">${p.potency} · ${sys ? sys.name : p.system}</span>
-      <h3>${p.name}${p.prescriptionOnly ? '<span class="rx-tag">Rx</span>' : ''}</h3>
-      <p>${p.desc}</p>
+      <div class="product-visual" aria-hidden="true">${(CATEGORIES.find(c=>c.id===p.category)||{}).icon || '💊'}</div>
+      <span class="potency-tag">${p.potency || p.packSize || 'Catalogue item'} · ${sys ? sys.name : p.system}</span>
+      <h3>${p.name}${(p.prescriptionOnly || p.prescriptionRequired) ? '<span class="rx-tag">Prescription required</span>' : ''}</h3>
+      <p class="product-brand">${p.brand || 'VanaCare catalogue'}</p>
+      <p>${p.desc || p.description || 'Catalogue information pending pharmacist review.'}</p><p class="stock-label">${Number(p.stock??p.stockQuantity??0)>0?'In stock':'Out of stock'}</p>
       <div class="product-foot">
         <span class="price">₹${p.price}</span>
-        <button class="btn btn-ghost" data-add="${p._id}">Add to cart</button>
+        <button class="btn btn-ghost" data-detail="${p._id}">Details</button><button class="btn btn-primary" data-add="${p._id}" ${Number(p.stock??p.stockQuantity??0)<=0?'disabled':''}>Add to cart</button>
       </div>
     </div>`;
   }).join('');
-  grid.querySelectorAll('[data-add]').forEach(btn => {
-    btn.addEventListener('click', () => addToCart(btn.dataset.add));
-  });
+  grid.querySelectorAll('[data-add]').forEach(btn => btn.addEventListener('click', () => addToCart(btn.dataset.add)));
+  grid.querySelectorAll('[data-detail]').forEach(btn=>btn.addEventListener('click',()=>showProductDetails(btn.dataset.detail)));
 }
+
+function showProductDetails(id){const p=allProducts.find(x=>String(x._id)===String(id)||String(x.id)===String(id));if(!p)return;const box=document.getElementById('detailDialog');document.getElementById('detailContent').innerHTML=`<span class="potency-tag">${p.system||'Healthcare'} · ${p.potency||''}</span><h2>${p.name}</h2><p>${p.desc||p.description||''}</p><p><strong>₹${p.price}</strong> · ${Number(p.stock??p.stockQuantity??0)>0?'In stock':'Out of stock'}</p><p>${p.prescriptionOnly?'Prescription required':'No prescription flag on this listing'}</p><button class="btn btn-primary" id="detailAdd" ${Number(p.stock??p.stockQuantity??0)<=0?'disabled':''}>Add to cart</button>`;box.hidden=false;document.getElementById('detailAdd').onclick=()=>{addToCart(p._id);box.hidden=true;};}
+document.getElementById('closeDetail').addEventListener('click',()=>document.getElementById('detailDialog').hidden=true);
+document.getElementById('detailDialog').addEventListener('click',e=>{if(e.target.id==='detailDialog')e.currentTarget.hidden=true;});
 
 // ---- Prescription-based selection ----
 function renderPrescriptionView() {
@@ -286,44 +306,14 @@ function addToCart(productId) {
 }
 
 function renderCart() {
-  const user = currentUser();
-  const cart = cartStore.cart(user.id);
-  const wrap = document.getElementById('cartItems');
-  const empty = document.getElementById('cartEmpty');
-  const summary = document.getElementById('cartSummary');
-  if (cart.length === 0) {
-    wrap.innerHTML = '';
-    empty.hidden = false;
-    summary.hidden = true;
-    return;
-  }
-  empty.hidden = true;
-  summary.hidden = false;
-  let subtotal = 0;
-  wrap.innerHTML = cart.map(item => {
-    const p = allProducts.find(pr => pr._id === item.id);
-    if (!p) return '';
-    subtotal += p.price * item.qty;
-    return `
-      <div class="cart-row">
-        <div>
-          <strong>${p.name}</strong> <span class="potency-tag">${p.potency}</span>
-          <div class="meta">₹${p.price} each</div>
-        </div>
-        <div class="qty-controls">
-          <button data-dec="${item.id}">−</button>
-          <span>${item.qty}</span>
-          <button data-inc="${item.id}">+</button>
-        </div>
-        <button class="remove-btn" data-remove="${item.id}">Remove</button>
-      </div>`;
-  }).join('');
-  document.getElementById('cartSubtotal').textContent = '₹' + subtotal;
-  document.getElementById('cartTotal').textContent = '₹' + (subtotal + 29);
-
-  wrap.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => changeQty(b.dataset.inc, 1)));
-  wrap.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => changeQty(b.dataset.dec, -1)));
-  wrap.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => removeFromCart(b.dataset.remove)));
+  const user=currentUser(), cart=user?cartStore.cart(user.id):[];
+  const wrap=document.getElementById('cartItems'), empty=document.getElementById('cartEmpty'), summary=document.getElementById('cartSummary');
+  const valid=cart.map(i=>({...i, product:allProducts.find(p=>String(p._id)===String(i.id)||String(p.id)===String(i.id))})).filter(i=>i.product);
+  if(!valid.length){wrap.innerHTML='';empty.hidden=false;summary.hidden=true;return;}
+  empty.hidden=true;summary.hidden=false;let subtotal=0;
+  wrap.innerHTML=valid.map(({id,qty,product:p})=>{subtotal+=Number(p.price||0)*qty;return `<article class="cart-product"><div class="cart-product-art">${p.image?`<img src="${p.image}" alt="${p.name}">`:'<span>✚</span>'}</div><div class="cart-product-info"><span class="potency-tag">${p.potency||p.packSize||'Medicine'} · ${p.system||'Healthcare'}</span><h3>${p.name}</h3><p>${p.brand||'VanaCare pharmacy partner'}</p><strong>₹${p.price}</strong><small class="stock-label">${Number(p.stock??p.stockQuantity??0)>0?'In stock':'Out of stock'}</small></div><div class="cart-product-actions"><div class="qty-controls"><button data-dec="${id}" aria-label="Decrease quantity">−</button><span>${qty}</span><button data-inc="${id}" aria-label="Increase quantity" ${Number(p.stock??99)<=qty?'disabled':''}>+</button></div><button class="remove-btn" data-remove="${id}">Remove</button></div></article>`}).join('');
+  const delivery=subtotal>=499?0:29;document.getElementById('cartSubtotal').textContent='₹'+subtotal;document.getElementById('cartTotal').textContent='₹'+(subtotal+delivery);document.querySelector('#cartSummary .row:nth-child(2) span:last-child').textContent=delivery?'₹'+delivery:'FREE';
+  wrap.querySelectorAll('[data-inc]').forEach(b=>b.addEventListener('click',()=>changeQty(b.dataset.inc,1)));wrap.querySelectorAll('[data-dec]').forEach(b=>b.addEventListener('click',()=>changeQty(b.dataset.dec,-1)));wrap.querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click',()=>removeFromCart(b.dataset.remove)));
 }
 
 function changeQty(id, delta) {
@@ -540,7 +530,7 @@ async function init() {
   updateAccountButton();
   showView('home');
   try {
-    allProducts = await Api.products();
+    const response = await Api.products(); allProducts = Array.isArray(response) ? response : (response.products || []); if(!allProducts.length) showToast('Catalogue is empty. Check MongoDB seed data.');
   } catch (err) {
     showToast('Could not reach the VanaCare server — is the backend running?');
   }

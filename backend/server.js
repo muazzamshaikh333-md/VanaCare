@@ -7,6 +7,7 @@ const path = require('path');
 const connectDB = require('./db');
 const User = require('./models/User');
 const Product = require('./models/Product');
+const Category = require('./models/Category');
 const Cart = require('./models/cart');
 const Order = require('./models/Order');
 const Prescription = require('./models/Prescription');
@@ -67,13 +68,74 @@ app.get('/api/auth/me',auth,asyncRoute(async(req,res)=>{
   res.json({user:safeUser(u)});
 }));
 
+// Public category catalogue APIs
+app.get('/api/categories',asyncRoute(async(req,res)=>{
+  const filter={isActive:true}; if(req.query.system) filter.system=String(req.query.system);
+  res.json(await Category.find(filter).sort({system:1,name:1}).lean());
+}));
+app.get('/api/categories/system/:system',asyncRoute(async(req,res)=>{
+  res.json(await Category.find({system:req.params.system,isActive:true}).sort({name:1}).lean());
+}));
+app.get('/api/categories/:slug',asyncRoute(async(req,res)=>{
+  const category=await Category.findOne({slug:req.params.slug,isActive:true}).lean();
+  if(!category)return res.status(404).json({error:'Category not found'}); res.json(category);
+}));
+app.post('/api/admin/categories',auth,allow('admin'),asyncRoute(async(req,res)=>{
+  const {name,slug,system}=req.body||{}; if(!name||!slug||!['homeo','ayurveda','dental','surgery'].includes(system))return res.status(400).json({error:'Name, slug and valid system are required'});
+  const category=await Category.create({...req.body,slug:String(slug).toLowerCase().trim()});res.status(201).json(category);
+}));
+app.put('/api/admin/categories/:id',auth,allow('admin'),asyncRoute(async(req,res)=>{
+  const updates={...req.body};delete updates._id;const category=await Category.findByIdAndUpdate(req.params.id,{$set:updates},{new:true,runValidators:true});
+  if(!category)return res.status(404).json({error:'Category not found'});res.json(category);
+}));
+app.delete('/api/admin/categories/:id',auth,allow('admin'),asyncRoute(async(req,res)=>{
+  const category=await Category.findByIdAndUpdate(req.params.id,{$set:{isActive:false}},{new:true});
+  if(!category)return res.status(404).json({error:'Category not found'});
+  await Product.updateMany({categoryId:category._id},{$set:{active:false,isActive:false}});res.json({ok:true,category});
+}));
+
+// Public product catalogue: supports system/category/search/filter/sort/pagination.
 app.get('/api/products',asyncRoute(async(req,res)=>{
   const filter={active:true};
-  if(req.query.system)filter.system=req.query.system;
-  if(req.query.category)filter.category=req.query.category;
-  if(req.query.q)filter.$text={$search:String(req.query.q)};
-  res.json(await Product.find(filter).sort({name:1}).limit(200));
+  if(req.query.system)filter.system=String(req.query.system);
+  if(req.query.category){
+    const cat=await Category.findOne({slug:String(req.query.category)}).select('_id slug').lean();
+    if(cat)filter.categoryId=cat._id; else filter.category=String(req.query.category);
+  }
+  if(req.query.q){const term=String(req.query.q).trim().slice(0,80);filter.$or=[{name:{$regex:term,$options:'i'}},{brand:{$regex:term,$options:'i'}},{desc:{$regex:term,$options:'i'}},{category:{$regex:term,$options:'i'}}];}
+  if(req.query.brand)filter.brand=String(req.query.brand);
+  if(req.query.prescriptionRequired!==undefined)filter.prescriptionOnly=req.query.prescriptionRequired==='true';
+  if(req.query.inStock==='true')filter.stock={$gt:0};
+  if(req.query.minPrice!==undefined||req.query.maxPrice!==undefined){filter.price={};if(req.query.minPrice!==undefined)filter.price.$gte=Math.max(0,Number(req.query.minPrice)||0);if(req.query.maxPrice!==undefined)filter.price.$lte=Math.max(0,Number(req.query.maxPrice)||0);}
+  const page=Math.max(1,parseInt(req.query.page||'1',10)); const limit=Math.min(500,Math.max(1,parseInt(req.query.limit||'500',10)));
+  const sortMap={name:{name:1},priceLow:{price:1},priceHigh:{price:-1},newest:{createdAt:-1}};
+  const rows=await Product.find(filter).sort(sortMap[req.query.sort]||{name:1}).skip((page-1)*limit).limit(limit).lean();
+  const total=await Product.countDocuments(filter);
+  // Keep legacy array response for the existing frontend unless pagination was explicitly requested.
+  if(req.query.page||req.query.limit||req.query.sort||req.query.minPrice||req.query.maxPrice||req.query.brand||req.query.inStock||req.query.prescriptionRequired!==undefined) return res.json({products:rows,total,page,pages:Math.ceil(total/limit)});
+  res.json(rows);
 }));
+// Admin-only product management
+app.post('/api/admin/products',auth,allow('admin'),asyncRoute(async(req,res)=>{
+  const body=req.body||{}; if(!body.name||!body.category||!body.system||!Number.isFinite(Number(body.price)))return res.status(400).json({error:'Name, system, category and valid price are required'});
+  const cat=await Category.findOne({slug:body.category});if(!cat)return res.status(400).json({error:'Valid category is required'});
+  const id=body.id||('adm-'+crypto.randomBytes(6).toString('hex'));
+  const product=await Product.create({...body,id,categoryId:cat._id,stock:Number(body.stock??body.stockQuantity??0),active:body.active!==false,prescriptionOnly:!!(body.prescriptionOnly??body.prescriptionRequired)});
+  res.status(201).json(product);
+}));
+app.put('/api/admin/products/:id',auth,allow('admin'),asyncRoute(async(req,res)=>{
+  const updates={...req.body}; delete updates._id; delete updates.id;
+  if(updates.category){const cat=await Category.findOne({slug:updates.category});if(!cat)return res.status(400).json({error:'Valid category is required'});updates.categoryId=cat._id;}
+  if(updates.stockQuantity!==undefined)updates.stock=Number(updates.stockQuantity);
+  if(updates.prescriptionRequired!==undefined)updates.prescriptionOnly=!!updates.prescriptionRequired;
+  const product=await Product.findOneAndUpdate({$or:[{_id:req.params.id},{id:req.params.id}]},{$set:updates},{new:true,runValidators:true});
+  if(!product)return res.status(404).json({error:'Product not found'});res.json(product);
+}));
+app.delete('/api/admin/products/:id',auth,allow('admin'),asyncRoute(async(req,res)=>{
+  const product=await Product.findOneAndUpdate({$or:[{_id:req.params.id},{id:req.params.id}]},{$set:{active:false,isActive:false}},{new:true});
+  if(!product)return res.status(404).json({error:'Product not found'});res.json({ok:true,product});
+}));
+
 app.get('/api/products/:id',asyncRoute(async(req,res)=>{
   const p=await Product.findOne({$or:[{_id:req.params.id},{id:req.params.id}],active:true});
   if(!p)return res.status(404).json({error:'Medicine not found'}); res.json(p);
@@ -256,8 +318,13 @@ const transitions={
 };
 app.patch('/api/orders/:id/status',auth,asyncRoute(async(req,res)=>{
   const {status,note}=req.body;
-  if(!(transitions[req.user.role]||[]).includes(status))return res.status(403).json({error:'Your role cannot set this status'});
   const order=await Order.findById(req.params.id);if(!order)return res.status(404).json({error:'Order not found'});
+  const isCustomer=req.user.role==='customer';
+  if(isCustomer){
+    if(String(order.customer)!==req.user.id)return res.status(403).json({error:'Not authorized'});
+    if(status!=='cancelled')return res.status(403).json({error:'Customers may only request cancellation'});
+    if(!['placed','confirmed'].includes(order.status))return res.status(409).json({error:'This order can no longer be cancelled'});
+  } else if(!(transitions[req.user.role]||[]).includes(status))return res.status(403).json({error:'Your role cannot set this status'});
   if(req.user.role==='delivery'&&String(order.deliveryPartner)!==req.user.id)return res.status(403).json({error:'This order is not assigned to you'});
   if(['preparing','packed','picked_up','out_for_delivery','delivered'].includes(status)){
     const pendingRx=await Prescription.exists({_id:{$in:order.prescriptionIds},status:{$ne:'approved'}});

@@ -16,6 +16,8 @@
       <button id="searchBtn">Search</button>
     </div>
     <nav class="header-actions">
+      <button class="icon-btn" data-nav="orders">Orders</button>
+      <button class="icon-btn" id="notificationsBtn" type="button" title="Notifications">♧ <span id="notificationCount" class="badge">0</span></button>
       <button class="icon-btn" data-nav="cart">Cart <span id="cartCount" class="badge">0</span></button>
       <button class="icon-btn" id="opsBtn" hidden data-nav="operations">Operations</button>
       <button class="icon-btn" id="deliveryBtn" hidden data-nav="delivery">Deliveries</button>
@@ -146,7 +148,7 @@
       <div class="row total"><span>Total</span><span id="cartTotal"></span></div>
       <button class="btn btn-primary btn-block" id="toCheckoutBtn">Proceed to checkout</button>
     </div>
-    <p class="empty-note" id="cartEmpty" hidden>Your cart is empty.</p>
+    <div class="empty-state" id="cartEmpty" hidden><div class="empty-icon">🛍️</div><h3>Your cart is empty.</h3><p class="muted">Discover trusted remedies from nearby pharmacy partners.</p><button class="btn btn-primary" type="button" data-nav="systems">Browse medicines</button></div>
   </section>
 
   <!-- CHECKOUT -->
@@ -180,7 +182,7 @@
   <!-- ORDERS -->
   <section class="view" id="view-orders" hidden>
     <h2>Your orders</h2>
-    <div id="ordersList"></div>
+    <div class="orders-toolbar"><p class="muted">A clear view of every order, from pharmacy confirmation to delivery.</p><button class="btn btn-ghost" type="button" data-nav="systems">Continue shopping</button></div><div id="ordersList"></div>
     <p class="empty-note" id="ordersEmpty" hidden>No orders yet — your first remedy is a search away.</p>
   </section>
 
@@ -201,6 +203,7 @@
 </main>
 
 <div id="toast" class="toast" hidden></div>
+<div id="detailDialog" class="detail-dialog" hidden role="dialog" aria-modal="true"><div class="detail-panel"><button class="dialog-close" id="closeDetail" aria-label="Close">×</button><div id="detailContent"></div></div></div>
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="data.js"></script>

@@ -1,27 +1,22 @@
-// seed.js
-// data.js ke PRODUCTS ko MongoDB me daalne ke liye ek baar chalao: npm run seed
-
 require('dotenv').config();
 const connectDB = require('./db');
+const Category = require('./models/Category');
 const Product = require('./models/Product');
-
-// Frontend ke data.js se products yaha copy-paste kiye gaye hain.
-// Agar data.js update ho, to ye list bhi update kar dena.
-const PRODUCTS = require('./productsData');
-
+const categories = require('./categoriesData');
+const products = require('./productsData');
 async function seed() {
   await connectDB();
-
-  for (const p of PRODUCTS) {
-    await Product.findOneAndUpdate({ id: p.id }, p, { upsert: true, new: true });
+  const categoryMap = new Map();
+  for (const item of categories) {
+    const saved = await Category.findOneAndUpdate({ slug: item.slug }, { $set: item }, { upsert: true, new: true, runValidators: true });
+    categoryMap.set(item.slug, saved._id);
   }
-
-  await Product.updateMany({ stock: { $exists: false } }, { $set: { stock: 50, active: true } });
-  console.log(`✅ ${PRODUCTS.length} products seed ho gaye MongoDB me.`);
+  for (const item of products) {
+    const categoryId = categoryMap.get(item.category);
+    if (!categoryId) throw new Error(`Missing category for product ${item.id}: ${item.category}`);
+    await Product.findOneAndUpdate({ id: item.id }, { $set: { ...item, categoryId, category: item.category, stock: item.stockQuantity, active: item.isActive, prescriptionOnly: item.prescriptionRequired } }, { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true });
+  }
+  console.log(`Seed complete: ${categories.length} categories, ${products.length} demo products. Existing users and orders were not deleted.`);
   process.exit(0);
 }
-
-seed().catch((err) => {
-  console.error('Seed karte waqt error aaya:', err);
-  process.exit(1);
-});
+seed().catch(err => { console.error('Seed failed:', err); process.exit(1); });

@@ -1,11 +1,11 @@
-const API_BASE = (window.VANACARE_API_BASE || 'http://localhost:5000/api');
+const API_BASE = String(window.VANACARE_API_BASE || 'http://localhost:5000/api').replace(/\/$/, '');
 function authToken(){ return localStorage.getItem('vc_token'); }
 async function api(path,{method='GET',body,auth=false}={}) {
   const headers={}; if(body!==undefined)headers['Content-Type']='application/json';
   if(auth&&authToken())headers.Authorization='Bearer '+authToken();
   let res;
   try{res=await fetch(API_BASE+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});}
-  catch(e){throw new Error('Could not reach VanaCare server. Start the backend first.');}
+  catch(e){throw new Error('Cannot connect to '+API_BASE+'. Start the backend on port 5000 and check that MongoDB is connected.');}
   const data=await res.json().catch(()=>({}));
   if(!res.ok)throw new Error(data.error||'Request failed');
   return data;
@@ -14,7 +14,15 @@ const Api={
  register:p=>api('/auth/register',{method:'POST',body:p}),
  login:p=>api('/auth/login',{method:'POST',body:p}),
  me:()=>api('/auth/me',{auth:true}),
+ categories:system=>api('/categories'+(system?'?system='+encodeURIComponent(system):'')),
+ category:slug=>api('/categories/'+encodeURIComponent(slug)),
+ addCategory:p=>api('/admin/categories',{method:'POST',body:p,auth:true}),
+ updateCategory:(id,p)=>api('/admin/categories/'+encodeURIComponent(id),{method:'PUT',body:p,auth:true}),
+ deactivateCategory:id=>api('/admin/categories/'+encodeURIComponent(id),{method:'DELETE',auth:true}),
  products:p=>{const q=new URLSearchParams(p||{}).toString();return api('/products'+(q?'?'+q:''));},
+ addProduct:p=>api('/admin/products',{method:'POST',body:p,auth:true}),
+ updateProduct:(id,p)=>api('/admin/products/'+encodeURIComponent(id),{method:'PUT',body:p,auth:true}),
+ deactivateProduct:id=>api('/admin/products/'+encodeURIComponent(id),{method:'DELETE',auth:true}),
  cart:()=>api('/cart',{auth:true}),
  saveCart:items=>api('/cart',{method:'PUT',body:{items},auth:true}),
  createOrder:p=>api('/orders',{method:'POST',body:p,auth:true}),
