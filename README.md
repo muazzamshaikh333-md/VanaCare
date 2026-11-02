@@ -1,78 +1,57 @@
-# VanaCare -- Medicine Delivery Platform
+# VanaCare – Online Medicine Ordering & Home Delivery Platform
 
-VanaCare is a medicine ordering and home-delivery web application built
-with **HTML, CSS, JavaScript, Node.js, Express.js, MongoDB, and
-Mongoose**. It provides a medicine catalogue, customer accounts, cart
-and checkout flows, prescription review APIs, order management, and
-role-based operations for pharmacy and delivery users.
+## About the Project
 
-> This project is intended for development and testing. Use Razorpay
-> **test-mode** credentials until the payment flow has been properly
-> tested.
+VanaCare is an online medicine ordering and home-delivery platform developed to make medicine purchasing easier, faster, and more convenient.
 
-## Features
+It provides a digital platform where customers can explore different healthcare categories, search for medicines, add products to their cart, place orders, and get medicines delivered to their doorstep.
 
-### Customer experience
+The platform also supports pharmacy operations, prescription verification, order management, and delivery-related activities.
 
--   Browse and search the medicine catalogue.
--   Register and log in to a customer account.
--   Add items to a cart and manage quantities.
--   Place orders with server-calculated prices.
--   View order history and order status.
--   Upload prescription files when required.
--   Receive in-app order notifications.
+## Why We Built VanaCare
 
-### Pharmacy and administration
+In traditional medicine purchasing, customers often need to visit multiple medical stores to find the required medicines. This can be time-consuming and inconvenient.
 
--   Protected pharmacy prescription queue.
--   Pharmacist/admin prescription review endpoints.
--   Admin order listing and order status updates.
--   Protected delivery-partner assignment endpoint.
--   Role-based access for customer, admin, pharmacist, and delivery
-    accounts.
+VanaCare aims to simplify this process by bringing medicine browsing, ordering, prescription handling, payment, and delivery management together in one platform.
 
-### Backend and security
+Our goal is to provide a simple, organized, and user-friendly medicine ordering experience.
 
--   MongoDB persistence with Mongoose models.
--   Password hashing and signed bearer-token authentication.
--   Server-side order total calculation.
--   Coupon validation endpoint.
--   Conditional stock reservation to reduce overselling.
--   Prescription file type and size validation.
--   Razorpay hosted checkout integration with server-side payment
-    signature verification.
--   Authenticated access to prescription files.
--   Delivery status changes are action-driven; the application does not
-    invent progress using timers.
+## Technologies Used
 
-## Technology stack
+| Technology | Purpose |
+|---|---|
+| HTML5 | Website structure |
+| CSS3 | Styling and responsive design |
+| JavaScript | Frontend functionality |
+| Node.js | Backend runtime |
+| Express.js | Backend API development |
+| MongoDB | Database |
+| Mongoose | Database management |
+| JWT | User authentication |
+| bcryptjs | Password security |
+| Razorpay | Payment integration |
+| Socket.IO | Real-time communication support |
 
-  Layer                Technology
-  -------------------- ----------------------------------------------
-  Frontend             HTML5, CSS3, Vanilla JavaScript
-  Backend              Node.js, Express.js
-  Database             MongoDB, Mongoose
-  Authentication       bcryptjs and signed bearer sessions
-  Payments             Razorpay Checkout (test mode)
-  Development server   Nodemon
-  Frontend serving     VS Code Live Server or another static server
+## Project Structure
 
-## Project structure
-
-``` text
-vanacare/
+```text
+VanaCare/
+│
 ├── assets/
 │   └── hero-banner.jpeg
+│
 ├── frontend/
 │   ├── index.html
 │   ├── style.css
 │   ├── data.js
 │   ├── api.js
 │   └── script.js
+│
 ├── backend/
 │   ├── models/
 │   │   ├── User.js
 │   │   ├── Product.js
+│   │   ├── Category.js
 │   │   ├── Order.js
 │   │   ├── cart.js
 │   │   ├── Coupon.js
@@ -80,195 +59,96 @@ vanacare/
 │   │   ├── Pharmacy.js
 │   │   ├── DeliveryPartner.js
 │   │   └── Notification.js
-│   ├── .env.example
-│   ├── db.js
+│   │
+│   ├── categoriesData.js
 │   ├── productsData.js
 │   ├── seed.js
+│   ├── db.js
 │   ├── server.js
 │   └── package.json
+│
+├── CATALOGUE_SETUP.md
+├── UPGRADE_NOTES_NOV02.md
+└── README.md
 ```
 
-## Requirements
+### Folder Description
 
--   Node.js 18 or later
--   npm
--   MongoDB local instance or MongoDB Atlas account
--   VS Code (recommended)
--   VS Code Live Server extension (or another static file server)
--   Razorpay test API keys for testing online payments
+- **assets/** – Contains images and visual assets used in the application.
+- **frontend/** – Contains the website interface, styling, application logic, and API communication.
+- **backend/** – Handles server-side logic, authentication, database operations, and application APIs.
+- **backend/models/** – Contains MongoDB models for users, products, categories, orders, carts, prescriptions, and other entities.
+- **categoriesData.js** – Contains the medicine category data.
+- **productsData.js** – Contains the medicine catalogue data.
+- **seed.js** – Used to populate the database with initial catalogue data.
+- **server.js** – Main backend server file.
+- **db.js** – Database connection-related logic.
 
+## Main Features
 
-## Available backend scripts
+- User registration and login.
+- Healthcare system-wise medicine browsing.
+- Category-wise medicine catalogue.
+- Search and filter medicines.
+- Medicine details and availability.
+- Shopping cart and quantity management.
+- Order placement and checkout.
+- Online payment integration.
+- Prescription upload and pharmacist verification.
+- Order history and status management.
+- Admin product and category management.
+- Pharmacy and delivery-related operations.
+- In-app notifications.
 
-Run these commands from `backend/`:
+## Medicine Categories
 
-  Command           Purpose
-  ----------------- -------------------------------------------
-  `npm install`     Install dependencies
-  `npm run dev`     Start the development server with Nodemon
-  `npm start`       Start the server with Node.js
-  `npm run seed`    Import catalogue seed data
-  `npm run check`   Check `server.js` syntax
+VanaCare organizes its catalogue into four major healthcare systems:
 
-## Main API endpoints
+1. **Homeopathy** – Category-wise homeopathic product catalogue.
+2. **Ayurveda** – Category-wise Ayurvedic product catalogue.
+3. **Dental Care** – Products related to dental care.
+4. **Post-Surgery Care** – Products organized into recovery-related categories.
 
-All routes use the `/api` prefix.
+The current development catalogue contains 28 categories and 224 demo product entries.
 
-  -------------------------------------------------------------------------------------
-  Method                  Endpoint                              Purpose
-  ----------------------- ------------------------------------- -----------------------
-  GET                     `/health`                             API health check
+## Working Flow
 
-  POST                    `/auth/register`                      Register a customer
+### 1. User Registration and Login
+Customers create an account or log in to access the platform.
 
-  POST                    `/auth/login`                         Log in
+### 2. Browse Medicines
+Users explore healthcare systems and select the category they need. They can search and filter available products.
 
-  GET                     `/auth/me`                            Get current
-                                                                authenticated user
+### 3. Select Medicines
+Users view product information, check availability, select quantities, and add medicines to their cart.
 
-  GET                     `/products`                           List products
+### 4. Cart and Checkout
+The selected products are displayed in the cart. Users review their order and proceed to checkout.
 
-  GET                     `/products/:id`                       Get product details
+### 5. Prescription Verification
+For products requiring prescriptions, users upload the required document. An authorized pharmacist reviews it before the order proceeds.
 
-  GET, PUT                `/cart`                               Read or update cart
+### 6. Payment and Order Placement
+Users proceed through the available payment flow. The backend verifies online payment information before treating a payment as successful.
 
-  GET, POST, DELETE       `/addresses`                          Manage saved addresses
+### 7. Order Management
+Customers can view their orders and check their current order status.
 
-  POST                    `/prescriptions`                      Upload a prescription
+### 8. Admin and Pharmacy Operations
+Administrators manage products, categories, and orders, while pharmacists handle prescription reviews.
 
-  GET                     `/prescriptions/:id/file`             Access an authorized
-                                                                prescription file
+### 9. Delivery Process
+Delivery-related operations support assigning orders to delivery partners and managing assigned deliveries.
 
-  GET                     `/pharmacy/prescriptions`             List prescription
-                                                                reviews
-                                                                (pharmacist/admin)
+## User Roles
 
-  PATCH                   `/pharmacy/prescriptions/:id`         Review a prescription
-                                                                (pharmacist/admin)
+- **Customer:** Browse medicines, manage cart, place orders, and view order history.
+- **Admin:** Manage products, categories, and orders.
+- **Pharmacist:** Review uploaded prescriptions.
+- **Delivery Partner:** Handle assigned delivery operations.
 
-  POST                    `/coupons/validate`                   Validate a coupon
+## Project Goal
 
-  POST                    `/orders`                             Create an order
+VanaCare aims to create a convenient digital medicine ordering experience by connecting customers, pharmacies, and delivery operations through one platform.
 
-  GET                     `/orders`                             Get the signed-in
-                                                                customer's orders
-
-  GET                     `/orders/:id`                         Get order details
-
-  PATCH                   `/orders/:id/status`                  Update an authorized
-                                                                order status
-
-  POST                    `/payments/verify`                    Verify Razorpay payment
-
-  GET                     `/admin/orders`                       List orders
-                                                                (admin/pharmacist)
-
-  PATCH                   `/admin/orders/:id/assign-delivery`   Assign a delivery
-                                                                partner (admin)
-
-  GET                     `/delivery/orders`                    List assigned
-                                                                deliveries
-
-  GET                     `/notifications`                      List notifications
-
-  PATCH                   `/notifications/:id/read`             Mark a notification as
-                                                                read
-
-  GET                     `/pharmacies`                         List active pharmacies
-  -------------------------------------------------------------------------------------
-
-Authenticated endpoints require a valid bearer token. Role-restricted
-endpoints require the appropriate account role.
-
-## User roles
-
-Public registration creates **customer** accounts only.
-
-The supported operational roles are: - `admin` - `pharmacist` -
-`delivery`
-
-A trusted project operator must provision these roles directly in
-MongoDB. Do not add public role selection to the registration form.
-After a role is changed, the user should sign in again to obtain a
-session with the updated permissions.
-
-## Payment and prescription safety
-
--   Configure Razorpay test keys for development.
--   Payment verification is performed by the backend; do not treat a
-    frontend success message as proof of payment.
--   Never store card numbers, CVV, UPI PINs, or banking passwords in
-    this application.
--   Prescription-required orders must go through an authorized
-    pharmacist review before preparation/dispatch.
--   Prescription uploads are limited to PDF, JPG, PNG, or WEBP files up
-    to 5 MB in the current backend configuration.
--   Keep `.env` and uploaded prescription files out of source control.
-
-## Current limitations and future work
-
-The current project includes backend foundations for the features below,
-but they should not be presented as fully integrated production services
-yet:
-
--   Automated pharmacy geo-routing and automatic pharmacy selection are
-    not connected.
--   Delivery assignment has a protected backend endpoint; a complete
-    admin assignment interface and partner onboarding workflow still
-    need to be wired.
--   Real GPS/map tracking is not connected.
--   Email, SMS, and push notifications are not connected; in-app
-    notifications are provided.
--   External refund execution is not connected.
--   The customer cart UI uses local storage for immediate
-    responsiveness; full initial cross-device cart hydration needs
-    further frontend wiring.
--   Coupon validation is available through the backend, but a live
-    discount preview before order creation is not fully wired into
-    checkout.
--   Automated integration tests and live MongoDB/Razorpay transactions
-    must be run in your own configured environment.
-
-## Troubleshooting
-
-### MongoDB authentication failed
-
-Check: 1. `MONGODB_URI` is set in `backend/.env`. 2. The Atlas database
-username and password are correct (these are not necessarily your Atlas
-website login credentials). 3. The Atlas IP access list allows your
-current network. 4. Special characters in the database password are
-URL-encoded. 5. The backend is reading the `.env` file from the
-`backend` folder.
-
-### Frontend cannot load orders
-
-1.  Make sure the backend is running.
-2.  Open `http://localhost:5000/api/health` and confirm the API
-    responds.
-3.  Sign in to the frontend; the orders endpoint requires
-    authentication.
-4.  Open browser Developer Tools → Network and inspect the `/api/orders`
-    request and its status code.
-5.  Check the backend terminal for the matching error.
-
-### Port 5000 is already in use
-
-Stop the other process using port 5000, or change `PORT` in
-`backend/.env` and update the frontend API base URL accordingly.
-
-## Contributing
-
-1.  Fork the repository.
-2.  Create a feature branch.
-3.  Make focused changes and test them locally.
-4.  Do not commit credentials, `.env`, or private prescription uploads.
-5.  Open a pull request describing the changes.
-
-## License
-
-No license has been specified for this repository. Add a license file
-before allowing others to reuse, modify, or distribute the project.
-
-------------------------------------------------------------------------
-
-**VanaCare -- Making medicine ordering simpler and more accessible.**
+**VanaCare – Making Medicine Ordering Simpler and More Accessible.**
