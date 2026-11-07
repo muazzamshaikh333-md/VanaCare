@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // VanaCare department and category navigation metadata.
 const SYSTEMS = [
   {
@@ -7,6 +8,11 @@ const SYSTEMS = [
     "blurb": "Modern medicine catalogue"
   },
   {
+=======
+// VanaCare catalogue navigation metadata. Live product inventory is fetched from MongoDB.
+const SYSTEMS = [
+  {
+>>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
     "id": "homeo",
     "name": "Homeopathy",
     "icon": "🌿",
@@ -29,6 +35,7 @@ const SYSTEMS = [
     "name": "Post-Surgery Care",
     "icon": "🏥",
     "blurb": "Recovery essentials and pharmacist-reviewed products"
+<<<<<<< HEAD
   },
   {
     "id": "physiotherapy",
@@ -47,6 +54,8 @@ const SYSTEMS = [
     "name": "Animal Healthcare",
     "icon": "🐾",
     "blurb": "Veterinary care for companion and farm animals"
+=======
+>>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
   }
 ];
 const CATEGORIES = [
@@ -245,6 +254,7 @@ const CATEGORIES = [
     "name": "Surgery Recovery",
     "icon": "🏥",
     "blurb": "Surgical recovery essentials"
+<<<<<<< HEAD
   },
   {
     "id": "general-health",
@@ -504,6 +514,8 @@ const CATEGORIES = [
     "name": "Pet First Aid & Emergency Care",
     "icon": "🩹",
     "blurb": "Pet First Aid & Emergency Care products and information"
+=======
+>>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
   }
 ];
 const STAGES = ['Placed','Confirmed','Pharmacy','Prescription','Preparing','Packed','Picked up','Out for delivery','Delivered'];

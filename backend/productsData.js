@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+// Development-only placeholders; verify all inventory details before sale.
+>>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
 module.exports = [
   {
     "id": "digestive-demo-01",
@@ -4702,6 +4706,7 @@ module.exports = [
     "active": true,
     "isActive": true,
     "productType": "demo-catalogue"
+<<<<<<< HEAD
   },
   {
     "id": "vet-dog-healthcare-1",
@@ -5042,5 +5047,7 @@ module.exports = [
     "productType": "veterinary-care-accessory",
     "animalType": "Pet First Aid & Emergency Care",
     "usageInfo": "Follow product packaging; consult a qualified veterinarian for animal health concerns."
+=======
+>>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
   }
 ];

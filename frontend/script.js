@@ -488,7 +488,10 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
       email: form.get('email').trim().toLowerCase(),
       phone: form.get('phone').trim(),
       password: form.get('password'),
+<<<<<<< HEAD
       dateOfBirth: form.get('dateOfBirth'),
+=======
+>>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
     });
     session.set(token, user);
     errEl.textContent = '';

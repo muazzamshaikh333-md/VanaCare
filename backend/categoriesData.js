@@ -222,6 +222,7 @@ module.exports = [
     "description": "Surgical recovery essentials",
     "icon": "🏥",
     "isActive": true
+<<<<<<< HEAD
   },
   {
     "name": "General Health",
@@ -518,5 +519,7 @@ module.exports = [
     "description": "Pet First Aid & Emergency Care catalogue and educational information",
     "icon": "🩹",
     "isActive": true
+=======
+>>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
   }
 ];
