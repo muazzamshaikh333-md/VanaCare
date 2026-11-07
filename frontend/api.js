@@ -14,14 +14,7 @@ const Api={
  register:p=>api('/auth/register',{method:'POST',body:p}),
  login:p=>api('/auth/login',{method:'POST',body:p}),
  me:()=>api('/auth/me',{auth:true}),
-<<<<<<< HEAD
-<<<<<<< HEAD
  updateDob:p=>api('/auth/profile/dob',{method:'PATCH',body:p,auth:true}),
-=======
->>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
-=======
- updateDob:p=>api('/auth/profile/dob',{method:'PATCH',body:p,auth:true}),
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
  categories:system=>api('/categories'+(system?'?system='+encodeURIComponent(system):'')),
  category:slug=>api('/categories/'+encodeURIComponent(slug)),
  addCategory:p=>api('/admin/categories',{method:'POST',body:p,auth:true}),
@@ -42,6 +35,11 @@ const Api={
  addresses:()=>api('/addresses',{auth:true}),
  addAddress:p=>api('/addresses',{method:'POST',body:p,auth:true}),
  notifications:()=>api('/notifications',{auth:true}),
+ feature:(path,options={})=>api(path,{...options,auth:true}),
+ prescriptions:()=>api('/prescriptions',{auth:true}),
+ reminders:()=>api('/reminders',{auth:true}),
+ pets:()=>api('/pets',{auth:true}),
+ rewards:()=>api('/rewards',{auth:true}),
  adminOrders:()=>api('/admin/orders',{auth:true}),
  pendingPrescriptions:()=>api('/pharmacy/prescriptions',{auth:true}),
  reviewPrescription:(id,decision,note)=>api('/pharmacy/prescriptions/'+id,{method:'PATCH',body:{decision,note},auth:true}),

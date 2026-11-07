@@ -1,0 +1,2 @@
+const mongoose=require('mongoose');
+module.exports=mongoose.model('Pet',new mongoose.Schema({owner:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true,index:true},name:{type:String,required:true,trim:true},animalType:{type:String,enum:['dog','cat','bird','livestock','other'],required:true},breed:String,dateOfBirth:Date,gender:{type:String,enum:['male','female','unknown'],default:'unknown'},weight:Number,imageUrl:String,notes:String},{timestamps:true}));

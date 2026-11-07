@@ -19,6 +19,7 @@
     </div>
     <nav class="header-actions">
       <button class="icon-btn" data-nav="orders">Orders</button>
+      <button class="icon-btn" data-nav="carehub">Care Hub</button>
       <button class="icon-btn" id="notificationsBtn" type="button" title="Notifications">♧ <span id="notificationCount" class="badge">0</span></button>
       <button class="icon-btn" data-nav="cart">Cart <span id="cartCount" class="badge">0</span></button>
       <button class="icon-btn" id="opsBtn" hidden data-nav="operations">Operations</button>
@@ -51,11 +52,6 @@
       </div>
     </div>
 
-<<<<<<< HEAD
-    <div class="section-block">
-      <h2>Three systems, one delivery</h2>
-      <p class="muted" style="margin-top:-10px">Each system of medicine has its own compartment and its own store partners — pick one to browse, or bring a prescription.</p>
-=======
     <section class="prescription-spotlight" aria-labelledby="prescriptionSpotlightTitle">
       <div class="prescription-spotlight-copy">
         <span class="prescription-eyebrow">PRESCRIPTION MADE SIMPLE</span>
@@ -84,7 +80,6 @@
     <div class="section-block">
       <h2>Explore healthcare departments</h2>
       <p class="muted" style="margin-top:-10px">Find the right care category, explore available products, or upload a prescription for pharmacist review.</p>
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
       <div class="category-grid" id="systemGridHome"></div>
     </div>
 
@@ -113,16 +108,8 @@
         <label>Full name<input type="text" name="name" required></label>
         <label>Email<input type="email" name="email" required></label>
         <label>Phone<input type="tel" name="phone" pattern="[0-9]{10}" placeholder="10-digit number" required></label>
-<<<<<<< HEAD
-<<<<<<< HEAD
         <label>Date of birth<input type="date" name="dateOfBirth" id="registerDob" max="2026-11-07" required></label>
         <p class="muted">Your age is calculated from your date of birth. Some products may require additional legal age verification.</p>
-=======
->>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
-=======
-        <label>Date of birth<input type="date" name="dateOfBirth" id="registerDob" max="2026-11-07" required></label>
-        <p class="muted">Your age is calculated from your date of birth. Some products may require additional legal age verification.</p>
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
         <label>Password<input type="password" name="password" minlength="8" required></label>
         <p class="form-error" id="registerError"></p>
         <button class="btn btn-primary" type="submit">Register</button>
@@ -247,6 +234,18 @@
     <h3>Pending prescriptions</h3><div id="pendingRxList"></div>
   </section>
 
+  <!-- VANACARE 2.0 CUSTOMER CARE HUB -->
+  <section class="view" id="view-carehub" hidden>
+    <div class="carehub-heading"><div><p class="eyebrow">VANACARE 2.0</p><h2>Your care, organised</h2><p class="muted">Manage reminders, pet records, prescriptions and rewards in one place.</p></div></div>
+    <div class="carehub-grid">
+      <article class="carehub-card"><h3>💊 Medicine reminders</h3><p class="muted">Add schedules exactly as prescribed by your clinician.</p><form id="reminderForm"><label>Medicine name<input name="medicineName" required maxlength="120"></label><label>Prescribed instructions<input name="instructions" required placeholder="As written on your prescription"></label><label>Reminder times (24-hour, comma separated)<input name="times" placeholder="08:00, 20:00"></label><label>Start date<input type="date" name="startDate" required></label><label>End date (optional)<input type="date" name="endDate"></label><button class="btn btn-primary" type="submit">Save reminder</button></form><div id="reminderList" class="feature-list"></div></article>
+      <article class="carehub-card"><h3>🐾 Pet profiles</h3><p class="muted">Keep animal healthcare records separate from human prescriptions.</p><form id="petForm"><label>Pet name<input name="name" required></label><label>Animal type<select name="animalType"><option value="dog">Dog</option><option value="cat">Cat</option><option value="bird">Bird</option><option value="livestock">Livestock</option><option value="other">Other</option></select></label><label>Breed<input name="breed"></label><label>Date of birth<input type="date" name="dateOfBirth"></label><button class="btn btn-primary" type="submit">Add pet</button></form><div id="petList" class="feature-list"></div></article>
+      <article class="carehub-card"><h3>🏆 Loyalty rewards</h3><p class="muted">Earn points after eligible orders are delivered.</p><div id="rewardsSummary">Sign in to view your rewards.</div><form id="redeemForm"><label>Points to redeem<input name="points" type="number" min="100" step="1" required></label><button class="btn btn-primary" type="submit">Redeem points</button></form><div id="rewardHistory" class="feature-list"></div></article>
+      <article class="carehub-card"><h3>📄 Prescription history</h3><p class="muted">Check the review status of prescriptions you've submitted.</p><div id="prescriptionHistory" class="feature-list"></div></article>
+      <article class="carehub-card admin-care-card" id="adminCareCard" hidden><h3>📊 Operations dashboard</h3><div id="adminMetrics" class="metric-grid"></div><div id="pharmacyMetrics" class="feature-list"></div><button class="btn btn-ghost" id="auditRefresh" type="button">Load audit activity</button><div id="auditList" class="feature-list"></div></article>
+    </div>
+  </section>
+
   <!-- DELIVERY PARTNER -->
   <section class="view" id="view-delivery" hidden>
     <h2>My assigned deliveries</h2><div id="deliveryOrdersList"></div>
@@ -261,6 +260,7 @@
   </div>
 </footer>
 <div id="toast" class="toast" hidden></div>
+<div id="assistantWidget" class="assistant-widget"><button id="assistantToggle" class="assistant-fab" type="button" aria-label="Open VanaCare assistant">✦</button><section id="assistantPanel" class="assistant-panel" hidden><header><div><strong>VanaCare Assistant</strong><small id="assistantMode">Demo mode · General guidance only</small></div><button id="assistantClose" type="button" aria-label="Close assistant">×</button></header><div id="assistantMessages" class="assistant-messages"><p class="assistant-bubble">Hello! I can help you navigate VanaCare and explain general healthcare terms. I cannot diagnose or prescribe.</p></div><form id="assistantForm"><input name="message" placeholder="Ask a general question…" maxlength="1500" required><button type="submit">Send</button></form></section></div>
 <div id="detailDialog" class="detail-dialog" hidden role="dialog" aria-modal="true"><div class="detail-panel"><button class="dialog-close" id="closeDetail" aria-label="Close">×</button><div id="detailContent"></div></div></div>
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>

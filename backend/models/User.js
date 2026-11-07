@@ -9,19 +9,14 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, index: true },
   phone: { type: String, required: true },
-<<<<<<< HEAD
-<<<<<<< HEAD
   dateOfBirth: { type: Date, required: true },
   ageVerificationStatus: { type: String, enum: ['under-18','adult-self-declared','pending-additional-check'], default: 'under-18' },
-=======
->>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
-=======
-  dateOfBirth: { type: Date, required: true },
-  ageVerificationStatus: { type: String, enum: ['under-18','adult-self-declared','pending-additional-check'], default: 'under-18' },
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
   password: { type: String, required: true, minlength: 8 },
   role: { type: String, enum: ['customer','admin','pharmacist','delivery'], default: 'customer' },
-  addresses: [addressSchema]
+  addresses: [addressSchema],
+  rewardPoints: { type: Number, default: 0, min: 0 },
+  referralCode: { type: String, unique: true, sparse: true },
+  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 userSchema.pre('save', async function () {
   if (this.isModified('password')) this.password = await bcrypt.hash(this.password, 12);

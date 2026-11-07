@@ -15,10 +15,20 @@ const Coupon = require('./models/Coupon');
 const Notification = require('./models/Notification');
 const Pharmacy = require('./models/Pharmacy');
 const DeliveryPartner = require('./models/DeliveryPartner');
+const MedicineReminder = require('./models/MedicineReminder');
+const Pet = require('./models/Pet');
+const VaccinationRecord = require('./models/VaccinationRecord');
+const VeterinaryAppointment = require('./models/VeterinaryAppointment');
+const RewardTransaction = require('./models/RewardTransaction');
+const ChatConversation = require('./models/ChatConversation');
+const AuditLog = require('./models/AuditLog');
 
 const app = express();
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN ? process.env.FRONTEND_ORIGIN.split(',') : true }));
-app.use(express.json({ limit: '12mb' }));
+app.use(express.json({ limit: '8mb' }));
+app.use((req,res,next)=>{res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');next();});
+const requestCounts=new Map();
+app.use('/api/auth', (req,res,next)=>{const key=req.ip+'|'+req.path;const now=Date.now();const entry=requestCounts.get(key)||{count:0,reset:now+60000};if(now>entry.reset){entry.count=0;entry.reset=now+60000;}entry.count++;requestCounts.set(key,entry);if(entry.count>30)return res.status(429).json({error:'Too many authentication attempts. Try again shortly.'});next();});
 const PORT = process.env.PORT || 5000;
 const uploadDir = path.join(__dirname, 'uploads');
 fs.mkdirSync(uploadDir, { recursive: true });
@@ -26,6 +36,7 @@ const DELIVERY_FEE = Math.max(0, Number(process.env.DELIVERY_FEE || 29));
 const TAX_RATE = Math.max(0, Number(process.env.TAX_RATE || 0));
 
 function tokenFor(user) {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) throw new Error('JWT_SECRET must be configured with at least 32 characters');
   const payload = Buffer.from(JSON.stringify({ sub: String(user._id), role: user.role, exp: Date.now() + 7*24*60*60*1000 })).toString('base64url');
   const sig = crypto.createHmac('sha256', process.env.JWT_SECRET).update(payload).digest('base64url');
   return payload + '.' + sig;
@@ -43,17 +54,8 @@ function auth(req,res,next) {
   } catch { return res.status(401).json({error:'Invalid session'}); }
 }
 const allow = (...roles) => (req,res,next) => roles.includes(req.user.role) ? next() : res.status(403).json({error:'Not authorized for this action'});
-<<<<<<< HEAD
-<<<<<<< HEAD
 function calculateAge(dob) { if (!dob) return -1; const d=new Date(dob); if(Number.isNaN(d.getTime())) return -1; const n=new Date(); let a=n.getFullYear()-d.getFullYear(); if(n.getMonth()<d.getMonth() || (n.getMonth()===d.getMonth() && n.getDate()<d.getDate())) a--; return a; }
 const safeUser = u => ({ id:u._id, name:u.name, email:u.email, phone:u.phone, role:u.role, addresses:u.addresses || [], dateOfBirth:u.dateOfBirth || null, age:calculateAge(u.dateOfBirth), isAdult:calculateAge(u.dateOfBirth) >= 18, ageVerificationStatus:u.ageVerificationStatus || 'under-18' });
-=======
-const safeUser = u => ({ id:u._id, name:u.name, email:u.email, phone:u.phone, role:u.role, addresses:u.addresses || [] });
->>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
-=======
-function calculateAge(dob) { if (!dob) return -1; const d=new Date(dob); if(Number.isNaN(d.getTime())) return -1; const n=new Date(); let a=n.getFullYear()-d.getFullYear(); if(n.getMonth()<d.getMonth() || (n.getMonth()===d.getMonth() && n.getDate()<d.getDate())) a--; return a; }
-const safeUser = u => ({ id:u._id, name:u.name, email:u.email, phone:u.phone, role:u.role, addresses:u.addresses || [], dateOfBirth:u.dateOfBirth || null, age:calculateAge(u.dateOfBirth), isAdult:calculateAge(u.dateOfBirth) >= 18, ageVerificationStatus:u.ageVerificationStatus || 'under-18' });
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
 async function notify(user,title,message,order) {
   if (user) await Notification.create({user,title,message,relatedOrder:order});
 }
@@ -61,27 +63,13 @@ function asyncRoute(fn) { return (req,res,next) => Promise.resolve(fn(req,res,ne
 app.get('/api/health',(req,res)=>res.json({status:'ok',service:'VanaCare API'}));
 
 app.post('/api/auth/register',asyncRoute(async(req,res)=>{
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
   const {name,email,phone,password,dateOfBirth}=req.body;
   if(!name || !email || !phone || !password || String(password).length<8 || !dateOfBirth) return res.status(400).json({error:'Name, email, phone, date of birth and password (8+ characters) are required'});
   const dob=new Date(dateOfBirth); if(Number.isNaN(dob.getTime()) || dob >= new Date()) return res.status(400).json({error:'Enter a valid date of birth in the past'});
   const age=calculateAge(dob);
   const normalized=String(email).trim().toLowerCase();
   if(await User.findOne({email:normalized})) return res.status(409).json({error:'Email already registered'});
-  const user=await User.create({name,email:normalized,phone,password,dateOfBirth:dob,ageVerificationStatus:age>=18?'adult-self-declared':'under-18',role:'customer'});
-<<<<<<< HEAD
-=======
-  const {name,email,phone,password}=req.body;
-  if(!name || !email || !phone || !password || String(password).length<8) return res.status(400).json({error:'Name, email, phone and password (8+ characters) are required'});
-  const normalized=String(email).trim().toLowerCase();
-  if(await User.findOne({email:normalized})) return res.status(409).json({error:'Email already registered'});
-  const user=await User.create({name,email:normalized,phone,password,role:'customer'});
->>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
-=======
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
+  const user=await User.create({name,email:normalized,phone,password,dateOfBirth:dob,ageVerificationStatus:age>=18?'adult-self-declared':'under-18',referralCode:('VC'+crypto.randomBytes(4).toString('hex')).toUpperCase(),role:'customer'});
   res.status(201).json({token:tokenFor(user),user:safeUser(user)});
 }));
 app.post('/api/auth/login',asyncRoute(async(req,res)=>{
@@ -93,10 +81,6 @@ app.get('/api/auth/me',auth,asyncRoute(async(req,res)=>{
   const u=await User.findById(req.user.id); if(!u)return res.status(401).json({error:'Account not found'});
   res.json({user:safeUser(u)});
 }));
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
 app.patch('/api/auth/profile/dob',auth,asyncRoute(async(req,res)=>{
   const {dateOfBirth,password}=req.body||{};
   const user=await User.findById(req.user.id);
@@ -105,11 +89,6 @@ app.patch('/api/auth/profile/dob',auth,asyncRoute(async(req,res)=>{
   user.dateOfBirth=dob; user.ageVerificationStatus=calculateAge(dob)>=18?'adult-self-declared':'under-18'; await user.save();
   res.json({user:safeUser(user)});
 }));
-<<<<<<< HEAD
-=======
->>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
-=======
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
 
 // Public category catalogue APIs
 app.get('/api/categories',asyncRoute(async(req,res)=>{
@@ -124,15 +103,7 @@ app.get('/api/categories/:slug',asyncRoute(async(req,res)=>{
   if(!category)return res.status(404).json({error:'Category not found'}); res.json(category);
 }));
 app.post('/api/admin/categories',auth,allow('admin'),asyncRoute(async(req,res)=>{
-<<<<<<< HEAD
-<<<<<<< HEAD
   const {name,slug,system}=req.body||{}; if(!name||!slug||!['allopathy','homeo','ayurveda','dental','surgery','physiotherapy','psychiatry','veterinary'].includes(system))return res.status(400).json({error:'Name, slug and valid system are required'});
-=======
-  const {name,slug,system}=req.body||{}; if(!name||!slug||!['homeo','ayurveda','dental','surgery'].includes(system))return res.status(400).json({error:'Name, slug and valid system are required'});
->>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
-=======
-  const {name,slug,system}=req.body||{}; if(!name||!slug||!['allopathy','homeo','ayurveda','dental','surgery','physiotherapy','psychiatry','veterinary'].includes(system))return res.status(400).json({error:'Name, slug and valid system are required'});
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
   const category=await Category.create({...req.body,slug:String(slug).toLowerCase().trim()});res.status(201).json(category);
 }));
 app.put('/api/admin/categories/:id',auth,allow('admin'),asyncRoute(async(req,res)=>{
@@ -233,6 +204,8 @@ app.post('/api/prescriptions',auth,asyncRoute(async(req,res)=>{
   if(!match)return res.status(400).json({error:'Invalid file data'});
   const buffer=Buffer.from(match[2],'base64');
   if(!buffer.length||buffer.length>5*1024*1024)return res.status(400).json({error:'Prescription must be under 5 MB'});
+  const signatures={ 'application/pdf':buffer.subarray(0,5).toString()==='%PDF-', 'image/jpeg':buffer[0]===0xff&&buffer[1]===0xd8&&buffer[2]===0xff, 'image/png':buffer.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])), 'image/webp':buffer.subarray(0,4).toString()==='RIFF'&&buffer.subarray(8,12).toString()==='WEBP' };
+  if(!signatures[mimeType])return res.status(400).json({error:'File content does not match the selected prescription type'});
   const ext={ 'application/pdf':'pdf','image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[mimeType];
   const filename=crypto.randomUUID()+'.'+ext;
   fs.writeFileSync(path.join(uploadDir,filename),buffer,{flag:'wx'});
@@ -246,13 +219,14 @@ app.get('/api/prescriptions/:id/file',auth,asyncRoute(async(req,res)=>{
   res.type(p.mimeType).sendFile(path.join(uploadDir,p.storagePath));
 }));
 app.get('/api/pharmacy/prescriptions',auth,allow('admin','pharmacist'),asyncRoute(async(req,res)=>{
-  res.json(await Prescription.find({status:'pending'}).populate('customer','name email phone').sort({createdAt:1}));
+  res.json(await Prescription.find({status:{$in:['pending','under_review']}}).populate('customer','name email phone').sort({createdAt:1}));
 }));
 app.patch('/api/pharmacy/prescriptions/:id',auth,allow('admin','pharmacist'),asyncRoute(async(req,res)=>{
   const {decision,note}=req.body;
-  if(!['approved','rejected','more_info'].includes(decision))return res.status(400).json({error:'Invalid prescription decision'});
+  if(!['approved','rejected','more_info','under_review','expired'].includes(decision))return res.status(400).json({error:'Invalid prescription decision'});
   const p=await Prescription.findById(req.params.id);if(!p)return res.status(404).json({error:'Prescription not found'});
-  p.status=decision;p.pharmacist=req.user.id;p.reviewNote=String(note||'').slice(0,500);p.reviewedAt=new Date();await p.save();
+  p.status=decision;p.pharmacist=req.user.id;p.reviewNote=String(note||'').slice(0,500);p.reviewedAt=new Date();p.reviewHistory.push({status:decision,note:p.reviewNote,pharmacist:req.user.id});await p.save();
+  await audit(req,'prescription_'+decision,'Prescription',p._id);
   await notify(p.customer,'Prescription '+decision, p.reviewNote||('Your prescription was '+decision+'.'),p.order);
   res.json(p);
 }));
@@ -383,6 +357,8 @@ app.patch('/api/orders/:id/status',auth,asyncRoute(async(req,res)=>{
   }
   if(['picked_up','out_for_delivery','delivered'].includes(status)&&order.paymentMethod==='razorpay'&&order.paymentStatus!=='paid')return res.status(409).json({error:'Online payment is not verified'});
   order.status=status;order.statusHistory.push({status,note:String(note||'').slice(0,300),by:req.user.id});await order.save();
+  if(status==='delivered'){const points=Math.floor(Math.max(0,Number(order.total)||0)/100);if(points>0){const ref='order:'+order._id;try{await RewardTransaction.create({user:order.customer,order:order._id,kind:'earn',points,description:'Completed order reward',reference:ref});await User.updateOne({_id:order.customer},{$inc:{rewardPoints:points}});await audit(req,'reward_earned','Order',order._id,{points});}catch(e){if(e.code!==11000)throw e;}}}
+  if(status==='delivered'){const buyer=await User.findById(order.customer).select('referredBy');if(buyer?.referredBy){const ref='referral-order:'+order._id;try{await RewardTransaction.create({user:buyer.referredBy,order:order._id,kind:'referral',points:100,description:'Referral reward after referred customer order delivery',reference:ref});await User.updateOne({_id:buyer.referredBy},{$inc:{rewardPoints:100}});}catch(e){if(e.code!==11000)throw e;}}}
   await notify(order.customer,'Order update',`Your order ${order.orderCode}: ${status.replaceAll('_',' ')}.`,order._id);
   res.json(order);
 }));
@@ -409,6 +385,83 @@ app.patch('/api/notifications/:id/read',auth,asyncRoute(async(req,res)=>{
   if(!n)return res.status(404).json({error:'Notification not found'});res.json(n);
 }));
 app.get('/api/pharmacies',asyncRoute(async(req,res)=>res.json(await Pharmacy.find({active:true}).select('name address city supportedSystems'))));
+
+
+
+// VanaCare 2.0 modules. Existing routes and data contracts above remain intact.
+async function audit(req,action,targetType,targetId,metadata={}) {
+  try { await AuditLog.create({actor:req.user&&req.user.id,action,targetType,targetId:String(targetId||''),ip:req.ip,metadata}); } catch(e) { console.error('Audit log write failed'); }
+}
+const ownPet=async(id,userId)=>Pet.findOne({_id:id,owner:userId});
+
+// AI assistant: safe demo fallback unless a server-side provider is configured.
+app.post('/api/assistant/chat',auth,asyncRoute(async(req,res)=>{
+  const message=String(req.body.message||'').trim().slice(0,1500);if(!message)return res.status(400).json({error:'Enter a message'});
+  let conversation=req.body.conversationId?await ChatConversation.findOne({_id:req.body.conversationId,user:req.user.id}):null;
+  if(!conversation)conversation=await ChatConversation.create({user:req.user.id,messages:[]});
+  conversation.messages.push({role:'user',content:message});
+  let reply;
+  if(process.env.AI_API_URL&&process.env.AI_API_KEY){
+    try { const r=await fetch(process.env.AI_API_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+process.env.AI_API_KEY},body:JSON.stringify({message,history:conversation.messages.slice(-12)})});if(!r.ok)throw new Error('provider error');const data=await r.json();reply=String(data.reply||data.message||'I could not prepare a response.').slice(0,2000); }
+    catch { reply='The live assistant is temporarily unavailable. Please contact a qualified pharmacist for medicine-related guidance.'; }
+  } else {
+    const q=message.toLowerCase();
+    if(/prescription|dose|dosage|tablet|medicine.*take/.test(q))reply='I can help explain general terms, but I cannot interpret a personal prescription or decide a dose. Follow the prescriber’s instructions and ask a licensed pharmacist if anything is unclear.';
+    else if(/emergency|chest pain|breath|unconscious|severe/.test(q))reply='This may need urgent medical attention. Please contact local emergency services or visit the nearest emergency department now.';
+    else if(/department|category|veterinary|pet/.test(q))reply='VanaCare includes Allopathy, Homeopathy, Ayurveda, Dental Care, Post-Surgery Care, Physiotherapy, Psychiatry and Veterinary departments. Choose the relevant department to browse its catalogue.';
+    else reply='Welcome to VanaCare Assistant (Demo Mode). I can help you navigate departments, understand general medicine terminology and find platform features. I cannot diagnose, prescribe or recommend prescription medicines. For personal advice, contact a qualified healthcare professional.';
+  }
+  conversation.messages.push({role:'assistant',content:reply});await conversation.save();res.json({conversationId:conversation._id,reply,mode:process.env.AI_API_URL&&process.env.AI_API_KEY?'live':'demo'});
+}));
+app.get('/api/assistant/conversations',auth,asyncRoute(async(req,res)=>res.json(await ChatConversation.find({user:req.user.id}).select('messages createdAt updatedAt').sort({updatedAt:-1}).limit(20))));
+app.delete('/api/assistant/conversations/:id',auth,asyncRoute(async(req,res)=>{const r=await ChatConversation.deleteOne({_id:req.params.id,user:req.user.id});if(!r.deletedCount)return res.status(404).json({error:'Conversation not found'});res.json({ok:true});}));
+
+// Prescription history and review workflow.
+app.get('/api/prescriptions',auth,asyncRoute(async(req,res)=>res.json(await Prescription.find({customer:req.user.id}).select('-storagePath').sort({createdAt:-1}))));
+
+
+// Customer medicine reminders; schedules are user-entered, never inferred.
+app.get('/api/reminders',auth,asyncRoute(async(req,res)=>res.json(await MedicineReminder.find({user:req.user.id}).sort({startDate:1}))));
+app.post('/api/reminders',auth,asyncRoute(async(req,res)=>{const b=req.body||{};if(!b.medicineName||!b.instructions||!b.startDate)return res.status(400).json({error:'Medicine, prescribed instructions and start date are required'});const r=await MedicineReminder.create({user:req.user.id,medicineName:b.medicineName,instructions:b.instructions,times:Array.isArray(b.times)?b.times:[],frequency:b.frequency||'as_directed',days:b.days||[],startDate:b.startDate,endDate:b.endDate||undefined});res.status(201).json(r);}));
+app.patch('/api/reminders/:id',auth,asyncRoute(async(req,res)=>{const r=await MedicineReminder.findOneAndUpdate({_id:req.params.id,user:req.user.id},{$set:req.body},{new:true,runValidators:true});if(!r)return res.status(404).json({error:'Reminder not found'});res.json(r);}));
+app.post('/api/reminders/:id/log',auth,asyncRoute(async(req,res)=>{if(!['completed','skipped'].includes(req.body.status))return res.status(400).json({error:'Status must be completed or skipped'});const r=await MedicineReminder.findOne({_id:req.params.id,user:req.user.id});if(!r)return res.status(404).json({error:'Reminder not found'});r.history.push({date:req.body.date||new Date(),status:req.body.status});await r.save();res.json(r);}));
+app.delete('/api/reminders/:id',auth,asyncRoute(async(req,res)=>{const r=await MedicineReminder.deleteOne({_id:req.params.id,user:req.user.id});if(!r.deletedCount)return res.status(404).json({error:'Reminder not found'});res.json({ok:true});}));
+
+// Veterinary profiles and records are scoped to the owning customer.
+app.get('/api/pets',auth,asyncRoute(async(req,res)=>res.json(await Pet.find({owner:req.user.id}).sort({createdAt:-1}))));
+app.post('/api/pets',auth,asyncRoute(async(req,res)=>{const b=req.body||{};if(!b.name||!b.animalType)return res.status(400).json({error:'Pet name and animal type are required'});const p=await Pet.create({owner:req.user.id,name:b.name,animalType:b.animalType,breed:b.breed,dateOfBirth:b.dateOfBirth,gender:b.gender,weight:b.weight,notes:b.notes});res.status(201).json(p);}));
+app.patch('/api/pets/:id',auth,asyncRoute(async(req,res)=>{const b={...req.body};delete b.owner;delete b._id;const p=await Pet.findOneAndUpdate({_id:req.params.id,owner:req.user.id},{$set:b},{new:true,runValidators:true});if(!p)return res.status(404).json({error:'Pet not found'});res.json(p);}));
+app.delete('/api/pets/:id',auth,asyncRoute(async(req,res)=>{const p=await ownPet(req.params.id,req.user.id);if(!p)return res.status(404).json({error:'Pet not found'});await Promise.all([Pet.deleteOne({_id:p._id}),VaccinationRecord.deleteMany({pet:p._id}),VeterinaryAppointment.deleteMany({pet:p._id})]);res.json({ok:true});}));
+app.get('/api/pets/:id/vaccinations',auth,asyncRoute(async(req,res)=>{if(!await ownPet(req.params.id,req.user.id))return res.status(404).json({error:'Pet not found'});res.json(await VaccinationRecord.find({owner:req.user.id,pet:req.params.id}).sort({nextDueAt:1}));}));
+app.post('/api/pets/:id/vaccinations',auth,asyncRoute(async(req,res)=>{if(!await ownPet(req.params.id,req.user.id))return res.status(404).json({error:'Pet not found'});if(!req.body.vaccine)return res.status(400).json({error:'Vaccine name is required'});res.status(201).json(await VaccinationRecord.create({owner:req.user.id,pet:req.params.id,vaccine:req.body.vaccine,administeredAt:req.body.administeredAt,nextDueAt:req.body.nextDueAt,notes:req.body.notes}));}));
+app.post('/api/pets/:id/appointments',auth,asyncRoute(async(req,res)=>{if(!await ownPet(req.params.id,req.user.id))return res.status(404).json({error:'Pet not found'});if(!req.body.requestedAt||!req.body.reason)return res.status(400).json({error:'Requested date and reason are required'});res.status(201).json(await VeterinaryAppointment.create({owner:req.user.id,pet:req.params.id,requestedAt:req.body.requestedAt,reason:req.body.reason}));}));
+app.get('/api/veterinary/appointments',auth,asyncRoute(async(req,res)=>res.json(await VeterinaryAppointment.find({owner:req.user.id}).populate('pet','name animalType').sort({requestedAt:1}))));
+
+// Rewards: points are credited once per completed order; unique ledger reference prevents duplicates.
+app.get('/api/rewards',auth,asyncRoute(async(req,res)=>{const user=await User.findById(req.user.id).select('rewardPoints');const history=await RewardTransaction.find({user:req.user.id}).sort({createdAt:-1}).limit(100);res.json({balance:user.rewardPoints||0,history,membership:(user.rewardPoints||0)>=2500?'Platinum':(user.rewardPoints||0)>=750?'Gold':'Silver'});}));
+app.post('/api/rewards/redeem',auth,asyncRoute(async(req,res)=>{const points=Math.floor(Number(req.body.points));if(!Number.isFinite(points)||points<100)return res.status(400).json({error:'Redeem at least 100 points'});const user=await User.findOneAndUpdate({_id:req.user.id,rewardPoints:{$gte:points}},{$inc:{rewardPoints:-points}},{new:true});if(!user)return res.status(409).json({error:'Insufficient points'});try{const tx=await RewardTransaction.create({user:user._id,kind:'redeem',points:-points,description:'Points redeemed by customer',reference:'redeem:'+crypto.randomUUID()});await audit(req,'reward_redeemed','RewardTransaction',tx._id);res.json({balance:user.rewardPoints,transaction:tx});}catch(e){await User.updateOne({_id:user._id},{$inc:{rewardPoints:points}});throw e;}}));
+app.post('/api/rewards/referral',auth,asyncRoute(async(req,res)=>{const code=String(req.body.code||'').trim().toUpperCase();const referrer=await User.findOne({referralCode:code});if(!referrer||String(referrer._id)===req.user.id)return res.status(400).json({error:'Invalid referral code'});const user=await User.findById(req.user.id);if(user.referredBy)return res.status(409).json({error:'A referral has already been applied'});user.referredBy=referrer._id;await user.save();res.json({ok:true,message:'Referral recorded. Rewards are applied after eligibility checks.'});}));
+
+// Real MongoDB-backed operations metrics, never fabricated demo counts.
+app.get('/api/admin/dashboard',auth,allow('admin'),asyncRoute(async(req,res)=>{
+  const results=await Promise.all([
+    User.countDocuments({role:'customer'}), Order.countDocuments(), Product.countDocuments({active:true}), Pharmacy.countDocuments({active:true}),
+    Order.countDocuments({status:{$nin:['delivered','cancelled','rejected']}}), Order.countDocuments({status:'delivered'}),
+    Order.aggregate([{$match:{paymentStatus:{$in:['paid','pending']},status:{$ne:'cancelled'}}},{$group:{_id:null,total:{$sum:'$total'}}}]),
+    Product.countDocuments({active:true,stock:{$lte:5}}),
+    Order.aggregate([{$match:{createdAt:{$gte:new Date(Date.now()-30*86400000)},status:'delivered'}},{$group:{_id:{$dateToString:{format:'%Y-%m-%d',date:'$createdAt'}},revenue:{$sum:'$total'},orders:{$sum:1}}},{$sort:{_id:1}}])
+  ]);
+  const [customers,orders,medicines,pharmacies,pendingOrders,completedOrders,revenue,lowStock,sales]=results;
+  res.json({customers,orders,medicines,pharmacies,pendingOrders,completedOrders,revenue:revenue[0]?.total||0,lowStock,sales});
+}));
+app.get('/api/pharmacy/dashboard',auth,allow('admin','pharmacist'),asyncRoute(async(req,res)=>{const [orders,prescriptions,lowStock,expiring]=await Promise.all([Order.countDocuments({status:{$nin:['delivered','cancelled']}}),Prescription.countDocuments({status:{$in:['pending','under_review']}}),Product.countDocuments({active:true,stock:{$lte:5}}),Product.countDocuments({expiryDate:{$gte:new Date(),$lte:new Date(Date.now()+30*86400000)}})]);res.json({assignedOrders:orders,prescriptionQueue:prescriptions,lowStock,expiringSoon:expiring});}));
+app.get('/api/admin/audit-logs',auth,allow('admin'),asyncRoute(async(req,res)=>res.json(await AuditLog.find().populate('actor','name email role').sort({createdAt:-1}).limit(200))));
+
+app.patch('/api/pharmacy/inventory/:id',auth,allow('admin','pharmacist'),asyncRoute(async(req,res)=>{const p=await Product.findById(req.params.id);if(!p)return res.status(404).json({error:'Product not found'});const before=p.stock;const next=Number(req.body.stock);if(!Number.isInteger(next)||next<0)return res.status(400).json({error:'Stock must be a non-negative whole number'});p.stock=next;p.stockQuantity=next;if(req.body.price!==undefined){const price=Number(req.body.price);if(!Number.isFinite(price)||price<0)return res.status(400).json({error:'Price must be non-negative'});p.price=price;}await p.save();await audit(req,'inventory_updated','Product',p._id,{before,after:next});res.json(p);}));
+app.get('/api/admin/coupons',auth,allow('admin'),asyncRoute(async(req,res)=>res.json(await Coupon.find().sort({createdAt:-1}))));
+app.post('/api/admin/coupons',auth,allow('admin'),asyncRoute(async(req,res)=>{const b=req.body||{};if(!b.code||!['percent','flat'].includes(b.type)||!Number.isFinite(Number(b.value))||Number(b.value)<=0)return res.status(400).json({error:'Coupon code, valid type and positive value are required'});const c=await Coupon.create({code:String(b.code).toUpperCase().trim(),type:b.type,value:Number(b.value),minOrder:Number(b.minOrder)||0,maxDiscount:b.maxDiscount==null?undefined:Number(b.maxDiscount),expiresAt:b.expiresAt||undefined,active:b.active!==false});await audit(req,'coupon_created','Coupon',c._id);res.status(201).json(c);}));
+app.patch('/api/admin/coupons/:id',auth,allow('admin'),asyncRoute(async(req,res)=>{const b={...req.body};delete b._id;const c=await Coupon.findByIdAndUpdate(req.params.id,{$set:b},{new:true,runValidators:true});if(!c)return res.status(404).json({error:'Coupon not found'});await audit(req,'coupon_updated','Coupon',c._id);res.json(c);}));
+
 
 app.use((err,req,res,next)=>{console.error(err);res.status(500).json({error:'Server error. Please try again.'});});
 connectDB().then(()=>app.listen(PORT,()=>console.log(`VanaCare API running on http://localhost:${PORT}`))).catch(err=>{console.error('Database connection failed:',err.message);process.exit(1);});

@@ -1,0 +1,2 @@
+const mongoose=require('mongoose');
+module.exports=mongoose.model('VeterinaryAppointment',new mongoose.Schema({owner:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true,index:true},pet:{type:mongoose.Schema.Types.ObjectId,ref:'Pet',required:true},requestedAt:{type:Date,required:true},reason:{type:String,required:true,maxlength:500},status:{type:String,enum:['pending','confirmed','completed','cancelled'],default:'pending'},staffNote:String},{timestamps:true}));

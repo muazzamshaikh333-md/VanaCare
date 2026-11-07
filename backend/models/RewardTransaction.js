@@ -1,0 +1,2 @@
+const mongoose=require('mongoose');
+module.exports=mongoose.model('RewardTransaction',new mongoose.Schema({user:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true,index:true},order:{type:mongoose.Schema.Types.ObjectId,ref:'Order'},kind:{type:String,enum:['earn','redeem','referral','adjustment'],required:true},points:{type:Number,required:true},description:String,reference:{type:String,unique:true,sparse:true}},{timestamps:true}));

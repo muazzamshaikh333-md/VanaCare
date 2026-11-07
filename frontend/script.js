@@ -51,6 +51,7 @@ function showView(name) {
   if (name === 'orders') renderOrders();
   if (name === 'operations') renderOperations();
   if (name === 'delivery') renderDelivery();
+  if (name === 'carehub') renderCareHub();
   updateAccountButton();
 }
 
@@ -68,7 +69,7 @@ document.querySelectorAll('[data-nav]').forEach(el => {
   el.addEventListener('click', (e) => {
     e.preventDefault();
     const target = el.getAttribute('data-nav');
-    if (target === 'cart' || target === 'orders') {
+    if (target === 'cart' || target === 'orders' || target === 'carehub') {
       requireAuth(() => showView(target));
     } else {
       showView(target);
@@ -146,15 +147,12 @@ function renderCategoriesView() {
 document.getElementById('prescriptionLinkBtn').addEventListener('click', () => {
   requireAuth(() => showView('prescription'));
 });
-<<<<<<< HEAD
-=======
 const prescriptionHomeBtn = document.getElementById('prescriptionHomeBtn');
 if (prescriptionHomeBtn) {
   prescriptionHomeBtn.addEventListener('click', () => {
     requireAuth(() => showView('prescription'));
   });
 }
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
 document.getElementById('prescriptionBackBtn').addEventListener('click', () => showView('categories'));
 
 async function openCategory(catId) {
@@ -497,14 +495,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
       email: form.get('email').trim().toLowerCase(),
       phone: form.get('phone').trim(),
       password: form.get('password'),
-<<<<<<< HEAD
-<<<<<<< HEAD
       dateOfBirth: form.get('dateOfBirth'),
-=======
->>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
-=======
-      dateOfBirth: form.get('dateOfBirth'),
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
     });
     session.set(token, user);
     errEl.textContent = '';
@@ -557,3 +548,39 @@ setInterval(() => {
   const ordersView=document.getElementById('view-orders');
   if(ordersView && !ordersView.hidden && currentUser()) renderOrders();
 }, 15000);
+
+// ---- VanaCare 2.0: care hub, customer records and assistant ----
+const featureRequest = (path, method='GET', body) => Api.feature(path,{method,body});
+const safeText = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function renderCareHub(){
+  if(!currentUser()){showView('login');return;}
+  const reminderList=document.getElementById('reminderList'),petList=document.getElementById('petList');
+  try{
+    const [reminders,pets,rewards,prescriptions]=await Promise.all([Api.reminders(),Api.pets(),Api.rewards(),Api.prescriptions()]);
+    reminderList.innerHTML=reminders.length?reminders.map(r=>`<div class="feature-row"><div><strong>${safeText(r.medicineName)}</strong><small>${safeText(r.instructions)} · ${safeText((r.times||[]).join(', ')||'No time set')}</small></div><button class="btn btn-ghost" data-reminder-done="${r._id}" type="button">Done today</button></div>`).join(''):'<p class="muted">No reminders added yet.</p>';
+    reminderList.querySelectorAll('[data-reminder-done]').forEach(b=>b.addEventListener('click',async()=>{try{await featureRequest('/reminders/'+b.dataset.reminderDone+'/log','POST',{status:'completed'});showToast('Reminder marked completed');renderCareHub();}catch(e){showToast(e.message);}}));
+    petList.innerHTML=pets.length?pets.map(p=>`<div class="feature-row"><div><strong>${safeText(p.name)}</strong><small>${safeText(p.animalType)}${p.breed?' · '+safeText(p.breed):''}</small></div><span><button class="btn btn-ghost" data-vaccine="${p._id}" type="button">Add vaccine</button> <button class="btn btn-ghost" data-appointment="${p._id}" type="button">Request visit</button></span></div>`).join(''):'<p class="muted">No pet profiles added yet.</p>';
+    petList.querySelectorAll('[data-vaccine]').forEach(b=>b.addEventListener('click',async()=>{const vaccine=prompt('Vaccine name');if(!vaccine)return;const nextDueAt=prompt('Next due date (YYYY-MM-DD, optional)')||undefined;try{await featureRequest('/pets/'+b.dataset.vaccine+'/vaccinations','POST',{vaccine,nextDueAt});showToast('Vaccination record saved');}catch(e){showToast(e.message);}}));
+    petList.querySelectorAll('[data-appointment]').forEach(b=>b.addEventListener('click',async()=>{const reason=prompt('Reason for veterinary appointment');if(!reason)return;const requestedAt=prompt('Requested date and time (YYYY-MM-DDTHH:mm)');if(!requestedAt)return;try{await featureRequest('/pets/'+b.dataset.appointment+'/appointments','POST',{reason,requestedAt});showToast('Appointment request submitted');}catch(e){showToast(e.message);}}));
+    document.getElementById('rewardsSummary').innerHTML=`<div class="metric-grid"><div class="metric-tile"><strong>${rewards.balance}</strong><span>Available points</span></div><div class="metric-tile"><strong>${safeText(rewards.membership)}</strong><span>Membership</span></div></div>`;
+    document.getElementById('rewardHistory').innerHTML=(rewards.history||[]).slice(0,5).map(t=>`<div class="feature-row"><span>${safeText(t.description||t.kind)}</span><strong>${t.points>0?'+':''}${t.points}</strong></div>`).join('')||'<p class="muted">Your reward activity will appear here.</p>';
+    document.getElementById('prescriptionHistory').innerHTML=prescriptions.length?prescriptions.map(p=>`<div class="feature-row"><div><strong>${safeText(p.fileName||'Prescription')}</strong><small>${new Date(p.createdAt).toLocaleDateString()} · ${safeText(p._id)}</small></div><span class="status-pill">${safeText(p.status)}</span><button class="btn btn-ghost" data-rx-open="${p._id}" type="button">View</button></div>`).join(''):'<p class="muted">No uploaded prescriptions found.</p>';
+    document.getElementById('prescriptionHistory').querySelectorAll('[data-rx-open]').forEach(b=>b.addEventListener('click',async()=>{try{const r=await fetch(API_BASE+'/prescriptions/'+b.dataset.rxOpen+'/file',{headers:{Authorization:'Bearer '+session.token()}});if(!r.ok)throw new Error('Unable to open prescription');const url=URL.createObjectURL(await r.blob());window.open(url,'_blank','noopener');}catch(e){showToast(e.message);}}));
+    const user=currentUser(),isOps=['admin','pharmacist'].includes(user.role);document.getElementById('adminCareCard').hidden=!isOps;
+    if(isOps){
+      if(user.role==='admin'){
+        const d=await featureRequest('/admin/dashboard');document.getElementById('adminMetrics').innerHTML=[['Customers',d.customers],['Orders',d.orders],['Revenue','₹'+Number(d.revenue).toLocaleString('en-IN')],['Medicines',d.medicines],['Pending orders',d.pendingOrders],['Low stock',d.lowStock]].map(([k,v])=>`<div class="metric-tile"><strong>${safeText(v)}</strong><span>${k}</span></div>`).join('');
+      }else{document.getElementById('adminMetrics').innerHTML='<p class="muted">Admin-only business analytics are hidden for pharmacist accounts.</p>';}
+      const ph=await featureRequest('/pharmacy/dashboard');document.getElementById('pharmacyMetrics').innerHTML=`<div class="feature-row">Open orders <strong>${ph.assignedOrders}</strong></div><div class="feature-row">Prescription queue <strong>${ph.prescriptionQueue}</strong></div><div class="feature-row">Low-stock products <strong>${ph.lowStock}</strong></div><div class="feature-row">Expiry alerts (30 days) <strong>${ph.expiringSoon}</strong></div>`;
+    }
+  }catch(e){showToast(e.message);}
+}
+document.getElementById('reminderForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target);try{await featureRequest('/reminders','POST',{medicineName:f.get('medicineName'),instructions:f.get('instructions'),times:String(f.get('times')||'').split(',').map(x=>x.trim()).filter(Boolean),startDate:f.get('startDate'),endDate:f.get('endDate')||undefined,frequency:'as_directed'});e.target.reset();showToast('Reminder saved');renderCareHub();}catch(err){showToast(err.message);}});
+document.getElementById('petForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target);try{await featureRequest('/pets','POST',Object.fromEntries(f.entries()));e.target.reset();showToast('Pet profile created');renderCareHub();}catch(err){showToast(err.message);}});
+document.getElementById('redeemForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target);try{await featureRequest('/rewards/redeem','POST',{points:Number(f.get('points'))});e.target.reset();showToast('Points redeemed');renderCareHub();}catch(err){showToast(err.message);}});
+document.getElementById('auditRefresh')?.addEventListener('click',async()=>{try{const rows=await featureRequest('/admin/audit-logs');document.getElementById('auditList').innerHTML=rows.map(r=>`<div class="feature-row"><div><strong>${safeText(r.action)}</strong><small>${safeText(r.actor?.name||'System')} · ${new Date(r.createdAt).toLocaleString()}</small></div></div>`).join('')||'<p class="muted">No audit activity.</p>';}catch(e){showToast(e.message);}});
+
+const assistantPanel=document.getElementById('assistantPanel'),assistantMessages=document.getElementById('assistantMessages');
+document.getElementById('assistantToggle')?.addEventListener('click',()=>{assistantPanel.hidden=!assistantPanel.hidden;if(!currentUser()){assistantMessages.insertAdjacentHTML('beforeend','<p class="assistant-bubble">Sign in to save your conversation history.</p>');}});
+document.getElementById('assistantClose')?.addEventListener('click',()=>assistantPanel.hidden=true);
+document.getElementById('assistantForm')?.addEventListener('submit',async e=>{e.preventDefault();if(!currentUser()){showView('login');return;}const input=e.target.elements.message,message=input.value.trim();if(!message)return;assistantMessages.insertAdjacentHTML('beforeend',`<p class="assistant-bubble user">${safeText(message)}</p>`);input.value='';const loading=document.createElement('p');loading.className='assistant-bubble';loading.textContent='Thinking…';assistantMessages.appendChild(loading);assistantMessages.scrollTop=assistantMessages.scrollHeight;try{const result=await featureRequest('/assistant/chat','POST',{message});loading.textContent=result.reply;document.getElementById('assistantMode').textContent=result.mode==='demo'?'Demo mode · General guidance only':'AI assistant · General guidance only';}catch(err){loading.textContent=err.message;}assistantMessages.scrollTop=assistantMessages.scrollHeight;});

@@ -13,17 +13,8 @@ const productSchema = new mongoose.Schema({
   desc: String, description: String, imageUrl: String,
   stock: { type: Number, default: 0, min: 0 }, stockQuantity: { type: Number, default: 0, min: 0 },
   active: { type: Boolean, default: true }, isActive: { type: Boolean, default: true },
-<<<<<<< HEAD
-<<<<<<< HEAD
   productType: { type: String, default: 'healthcare-essential' },
-  animalType: { type: String, default: '' }, usageInfo: { type: String, default: '' }, minAge: { type: Number, default: 0, min: 0 }
-=======
-  productType: { type: String, default: 'healthcare-essential' }
->>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
-=======
-  productType: { type: String, default: 'healthcare-essential' },
-  animalType: { type: String, default: '' }, usageInfo: { type: String, default: '' }, minAge: { type: Number, default: 0, min: 0 }
->>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
+  animalType: { type: String, default: '' }, usageInfo: { type: String, default: '' }, minAge: { type: Number, default: 0, min: 0 }, expiryDate: Date
 }, { timestamps: true });
 productSchema.index({ system: 1, categoryId: 1, active: 1 });
 module.exports = mongoose.models.Product || mongoose.model('Product', productSchema);
