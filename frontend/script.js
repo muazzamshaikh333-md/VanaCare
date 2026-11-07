@@ -146,6 +146,15 @@ function renderCategoriesView() {
 document.getElementById('prescriptionLinkBtn').addEventListener('click', () => {
   requireAuth(() => showView('prescription'));
 });
+<<<<<<< HEAD
+=======
+const prescriptionHomeBtn = document.getElementById('prescriptionHomeBtn');
+if (prescriptionHomeBtn) {
+  prescriptionHomeBtn.addEventListener('click', () => {
+    requireAuth(() => showView('prescription'));
+  });
+}
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
 document.getElementById('prescriptionBackBtn').addEventListener('click', () => showView('categories'));
 
 async function openCategory(catId) {
@@ -489,9 +498,13 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
       phone: form.get('phone').trim(),
       password: form.get('password'),
 <<<<<<< HEAD
+<<<<<<< HEAD
       dateOfBirth: form.get('dateOfBirth'),
 =======
 >>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
+=======
+      dateOfBirth: form.get('dateOfBirth'),
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
     });
     session.set(token, user);
     errEl.textContent = '';

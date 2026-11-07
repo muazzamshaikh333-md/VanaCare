@@ -44,11 +44,16 @@ function auth(req,res,next) {
 }
 const allow = (...roles) => (req,res,next) => roles.includes(req.user.role) ? next() : res.status(403).json({error:'Not authorized for this action'});
 <<<<<<< HEAD
+<<<<<<< HEAD
 function calculateAge(dob) { if (!dob) return -1; const d=new Date(dob); if(Number.isNaN(d.getTime())) return -1; const n=new Date(); let a=n.getFullYear()-d.getFullYear(); if(n.getMonth()<d.getMonth() || (n.getMonth()===d.getMonth() && n.getDate()<d.getDate())) a--; return a; }
 const safeUser = u => ({ id:u._id, name:u.name, email:u.email, phone:u.phone, role:u.role, addresses:u.addresses || [], dateOfBirth:u.dateOfBirth || null, age:calculateAge(u.dateOfBirth), isAdult:calculateAge(u.dateOfBirth) >= 18, ageVerificationStatus:u.ageVerificationStatus || 'under-18' });
 =======
 const safeUser = u => ({ id:u._id, name:u.name, email:u.email, phone:u.phone, role:u.role, addresses:u.addresses || [] });
 >>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
+=======
+function calculateAge(dob) { if (!dob) return -1; const d=new Date(dob); if(Number.isNaN(d.getTime())) return -1; const n=new Date(); let a=n.getFullYear()-d.getFullYear(); if(n.getMonth()<d.getMonth() || (n.getMonth()===d.getMonth() && n.getDate()<d.getDate())) a--; return a; }
+const safeUser = u => ({ id:u._id, name:u.name, email:u.email, phone:u.phone, role:u.role, addresses:u.addresses || [], dateOfBirth:u.dateOfBirth || null, age:calculateAge(u.dateOfBirth), isAdult:calculateAge(u.dateOfBirth) >= 18, ageVerificationStatus:u.ageVerificationStatus || 'under-18' });
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
 async function notify(user,title,message,order) {
   if (user) await Notification.create({user,title,message,relatedOrder:order});
 }
@@ -57,6 +62,9 @@ app.get('/api/health',(req,res)=>res.json({status:'ok',service:'VanaCare API'}))
 
 app.post('/api/auth/register',asyncRoute(async(req,res)=>{
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
   const {name,email,phone,password,dateOfBirth}=req.body;
   if(!name || !email || !phone || !password || String(password).length<8 || !dateOfBirth) return res.status(400).json({error:'Name, email, phone, date of birth and password (8+ characters) are required'});
   const dob=new Date(dateOfBirth); if(Number.isNaN(dob.getTime()) || dob >= new Date()) return res.status(400).json({error:'Enter a valid date of birth in the past'});
@@ -64,6 +72,7 @@ app.post('/api/auth/register',asyncRoute(async(req,res)=>{
   const normalized=String(email).trim().toLowerCase();
   if(await User.findOne({email:normalized})) return res.status(409).json({error:'Email already registered'});
   const user=await User.create({name,email:normalized,phone,password,dateOfBirth:dob,ageVerificationStatus:age>=18?'adult-self-declared':'under-18',role:'customer'});
+<<<<<<< HEAD
 =======
   const {name,email,phone,password}=req.body;
   if(!name || !email || !phone || !password || String(password).length<8) return res.status(400).json({error:'Name, email, phone and password (8+ characters) are required'});
@@ -71,6 +80,8 @@ app.post('/api/auth/register',asyncRoute(async(req,res)=>{
   if(await User.findOne({email:normalized})) return res.status(409).json({error:'Email already registered'});
   const user=await User.create({name,email:normalized,phone,password,role:'customer'});
 >>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
   res.status(201).json({token:tokenFor(user),user:safeUser(user)});
 }));
 app.post('/api/auth/login',asyncRoute(async(req,res)=>{
@@ -83,6 +94,9 @@ app.get('/api/auth/me',auth,asyncRoute(async(req,res)=>{
   res.json({user:safeUser(u)});
 }));
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
 app.patch('/api/auth/profile/dob',auth,asyncRoute(async(req,res)=>{
   const {dateOfBirth,password}=req.body||{};
   const user=await User.findById(req.user.id);
@@ -91,8 +105,11 @@ app.patch('/api/auth/profile/dob',auth,asyncRoute(async(req,res)=>{
   user.dateOfBirth=dob; user.ageVerificationStatus=calculateAge(dob)>=18?'adult-self-declared':'under-18'; await user.save();
   res.json({user:safeUser(user)});
 }));
+<<<<<<< HEAD
 =======
 >>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
 
 // Public category catalogue APIs
 app.get('/api/categories',asyncRoute(async(req,res)=>{
@@ -108,10 +125,14 @@ app.get('/api/categories/:slug',asyncRoute(async(req,res)=>{
 }));
 app.post('/api/admin/categories',auth,allow('admin'),asyncRoute(async(req,res)=>{
 <<<<<<< HEAD
+<<<<<<< HEAD
   const {name,slug,system}=req.body||{}; if(!name||!slug||!['allopathy','homeo','ayurveda','dental','surgery','physiotherapy','psychiatry','veterinary'].includes(system))return res.status(400).json({error:'Name, slug and valid system are required'});
 =======
   const {name,slug,system}=req.body||{}; if(!name||!slug||!['homeo','ayurveda','dental','surgery'].includes(system))return res.status(400).json({error:'Name, slug and valid system are required'});
 >>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
+=======
+  const {name,slug,system}=req.body||{}; if(!name||!slug||!['allopathy','homeo','ayurveda','dental','surgery','physiotherapy','psychiatry','veterinary'].includes(system))return res.status(400).json({error:'Name, slug and valid system are required'});
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
   const category=await Category.create({...req.body,slug:String(slug).toLowerCase().trim()});res.status(201).json(category);
 }));
 app.put('/api/admin/categories/:id',auth,allow('admin'),asyncRoute(async(req,res)=>{

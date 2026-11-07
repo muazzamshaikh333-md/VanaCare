@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VanaCare — Homeopathy, delivered within the hour</title>
+<meta name="theme-color" content="#087F5B">
+<meta name="description" content="VanaCare — trusted healthcare products and pharmacy delivery, made simple.">
+<title>VanaCare — Healthcare, delivered with care</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -32,9 +34,9 @@
   <section class="view" id="view-home">
     <div class="hero">
       <div class="hero-text">
-        <p class="eyebrow">Classical homeopathy, from a store near you</p>
-        <h1>Tell us what ails you.<br>We'll bring the remedy.</h1>
-        <p class="hero-sub">Browse remedies by the part of you that needs care, or search by name — genuine potencies, packed by your neighbourhood pharmacy, at your door inside the hour.</p>
+        <p class="eyebrow">Your health, our priority</p>
+        <h1>Healthcare made simpler. Care delivered closer.</h1>
+        <p class="hero-sub">Discover trusted healthcare essentials across modern and traditional medicine, wellness, recovery and veterinary care — with a simpler way to order from your neighbourhood pharmacy.</p>
         <div class="hero-cta">
           <button class="btn btn-primary" data-nav="systems">Find a remedy</button>
           <button class="btn btn-ghost" data-nav="orders">Track an order</button>
@@ -49,9 +51,40 @@
       </div>
     </div>
 
+<<<<<<< HEAD
     <div class="section-block">
       <h2>Three systems, one delivery</h2>
       <p class="muted" style="margin-top:-10px">Each system of medicine has its own compartment and its own store partners — pick one to browse, or bring a prescription.</p>
+=======
+    <section class="prescription-spotlight" aria-labelledby="prescriptionSpotlightTitle">
+      <div class="prescription-spotlight-copy">
+        <span class="prescription-eyebrow">PRESCRIPTION MADE SIMPLE</span>
+        <h2 id="prescriptionSpotlightTitle">Have a prescription?</h2>
+        <p>Upload your doctor's prescription and let our pharmacy team review it before you place your order.</p>
+        <ul class="prescription-benefits">
+          <li><span aria-hidden="true">✓</span> Secure prescription submission</li>
+          <li><span aria-hidden="true">✓</span> Pharmacist review before fulfilment</li>
+        </ul>
+        <button class="btn btn-primary" id="prescriptionHomeBtn" type="button">
+          Upload prescription <span aria-hidden="true">→</span>
+        </button>
+      </div>
+      <div class="prescription-spotlight-art" aria-hidden="true">
+        <div class="rx-paper">
+          <span class="rx-paper-mark">Rx</span>
+          <span class="rx-paper-line rx-paper-line-wide"></span>
+          <span class="rx-paper-line"></span>
+          <span class="rx-paper-line rx-paper-line-short"></span>
+          <span class="rx-paper-stamp">✓</span>
+        </div>
+        <span class="rx-upload-orb">↑</span>
+      </div>
+    </section>
+
+    <div class="section-block">
+      <h2>Explore healthcare departments</h2>
+      <p class="muted" style="margin-top:-10px">Find the right care category, explore available products, or upload a prescription for pharmacist review.</p>
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
       <div class="category-grid" id="systemGridHome"></div>
     </div>
 
@@ -59,6 +92,15 @@
       <div class="strip-item"><strong>Under 60 minutes</strong><span>Dispatched from the store closest to you</span></div>
       <div class="strip-item"><strong>Pharmacist-verified</strong><span>Every order checked before it leaves the store</span></div>
       <div class="strip-item"><strong>Pay your way</strong><span>Card, UPI, or cash at the door</span></div>
+    </div>
+  <div class="section-block" aria-label="Why choose VanaCare">
+      <h2>Care you can count on</h2>
+      <p class="muted">A thoughtful healthcare experience from discovery to doorstep.</p>
+      <div class="strip">
+        <div class="strip-item"><strong>Pharmacy-led care</strong><span>Prescription requests are routed for pharmacist review.</span></div>
+        <div class="strip-item"><strong>One simple experience</strong><span>Browse departments, manage your cart and follow your orders.</span></div>
+        <div class="strip-item"><strong>Care for every family</strong><span>Explore human healthcare and veterinary categories in one place.</span></div>
+      </div>
     </div>
   </section>
 
@@ -72,10 +114,15 @@
         <label>Email<input type="email" name="email" required></label>
         <label>Phone<input type="tel" name="phone" pattern="[0-9]{10}" placeholder="10-digit number" required></label>
 <<<<<<< HEAD
+<<<<<<< HEAD
         <label>Date of birth<input type="date" name="dateOfBirth" id="registerDob" max="2026-11-07" required></label>
         <p class="muted">Your age is calculated from your date of birth. Some products may require additional legal age verification.</p>
 =======
 >>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
+=======
+        <label>Date of birth<input type="date" name="dateOfBirth" id="registerDob" max="2026-11-07" required></label>
+        <p class="muted">Your age is calculated from your date of birth. Some products may require additional legal age verification.</p>
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
         <label>Password<input type="password" name="password" minlength="8" required></label>
         <p class="form-error" id="registerError"></p>
         <button class="btn btn-primary" type="submit">Register</button>
@@ -207,6 +254,12 @@
 
 </main>
 
+<footer class="site-footer" style="background:#142B3B;color:#dbe7ed;padding:30px max(24px,calc((100% - 1224px)/2));">
+  <div style="display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:center;">
+    <div><strong style="font:800 1.35rem Manrope,sans-serif;color:#fff;">Vana<span style="color:#B8E986">Care</span></strong><p style="margin:6px 0 0;color:#b8c8d1;font-size:.88rem;">Thoughtful healthcare. Delivered with care.</p></div>
+    <p style="margin:0;color:#b8c8d1;font-size:.82rem;">For medical advice, diagnosis or treatment, consult a qualified healthcare professional.</p>
+  </div>
+</footer>
 <div id="toast" class="toast" hidden></div>
 <div id="detailDialog" class="detail-dialog" hidden role="dialog" aria-modal="true"><div class="detail-panel"><button class="dialog-close" id="closeDetail" aria-label="Close">×</button><div id="detailContent"></div></div></div>
 

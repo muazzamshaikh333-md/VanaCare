@@ -1,4 +1,7 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
 // VanaCare department and category navigation metadata.
 const SYSTEMS = [
   {
@@ -8,11 +11,14 @@ const SYSTEMS = [
     "blurb": "Modern medicine catalogue"
   },
   {
+<<<<<<< HEAD
 =======
 // VanaCare catalogue navigation metadata. Live product inventory is fetched from MongoDB.
 const SYSTEMS = [
   {
 >>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
     "id": "homeo",
     "name": "Homeopathy",
     "icon": "🌿",
@@ -36,6 +42,9 @@ const SYSTEMS = [
     "icon": "🏥",
     "blurb": "Recovery essentials and pharmacist-reviewed products"
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
   },
   {
     "id": "physiotherapy",
@@ -54,8 +63,11 @@ const SYSTEMS = [
     "name": "Animal Healthcare",
     "icon": "🐾",
     "blurb": "Veterinary care for companion and farm animals"
+<<<<<<< HEAD
 =======
 >>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
   }
 ];
 const CATEGORIES = [
@@ -255,6 +267,9 @@ const CATEGORIES = [
     "icon": "🏥",
     "blurb": "Surgical recovery essentials"
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
   },
   {
     "id": "general-health",
@@ -514,8 +529,11 @@ const CATEGORIES = [
     "name": "Pet First Aid & Emergency Care",
     "icon": "🩹",
     "blurb": "Pet First Aid & Emergency Care products and information"
+<<<<<<< HEAD
 =======
 >>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
   }
 ];
 const STAGES = ['Placed','Confirmed','Pharmacy','Prescription','Preparing','Packed','Picked up','Out for delivery','Delivered'];

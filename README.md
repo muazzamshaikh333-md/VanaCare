@@ -153,6 +153,9 @@ VanaCare aims to create a convenient digital medicine ordering experience by con
 
 **VanaCare – Making Medicine Ordering Simpler and More Accessible.**
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
 
 
 ## DOB and Veterinary additions
@@ -161,5 +164,8 @@ VanaCare aims to create a convenient digital medicine ordering experience by con
 - Added Allopathy, Physiotherapy, Psychiatry and Veterinary departments while retaining Homeopathy, Ayurveda, Dental Care and Post-Surgery Care.
 - Veterinary categories are seeded with demo non-medicinal care accessories only. Add real veterinary medicines only from verified supplier/manufacturer data and require veterinary prescription review where applicable.
 - `adult-self-declared` is not identity-verified proof of age. Add jurisdiction-appropriate identity/age assurance before dispensing legally age-restricted products.
+<<<<<<< HEAD
 =======
 >>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)

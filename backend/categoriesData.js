@@ -223,6 +223,9 @@ module.exports = [
     "icon": "🏥",
     "isActive": true
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
   },
   {
     "name": "General Health",
@@ -519,7 +522,10 @@ module.exports = [
     "description": "Pet First Aid & Emergency Care catalogue and educational information",
     "icon": "🩹",
     "isActive": true
+<<<<<<< HEAD
 =======
 >>>>>>> 5ec37430b6339a9f6bfb61718f1d486ee41dcf2d
+=======
+>>>>>>> e600fa6 (Upgrade VanaCare with advanced healthcare features)
   }
 ];
